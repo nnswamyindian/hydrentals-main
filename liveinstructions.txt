@@ -1,0 +1,79 @@
+🚀 1. Open Project in Terminal
+
+Go to your project folder:
+
+cd hydrentals-main
+📦 2. Install Dependencies
+
+Since you have node_modules, but still safer to install:
+
+npm install
+
+👉 If you're using bun (I see bun.lock), you can also do:
+
+bun install
+⚡ 3. Run Frontend (Vite App)
+npm run dev
+
+OR (bun):
+
+bun run dev
+
+👉 Output will look like:
+
+Local: http://localhost:5173/
+
+Open that in browser.
+
+🧠 4. Run Backend (server folder)
+
+You also have a server folder, so backend must be started separately.
+
+Go inside server:
+
+cd server
+npm install
+npm start
+
+OR if using nodemon:
+
+npm run dev
+🔑 5. Environment Setup (.env)
+
+Make sure .env exists in root:
+
+Example:
+
+VITE_SUPABASE_URL=your_url
+VITE_SUPABASE_ANON_KEY=your_key
+
+If backend also uses env:
+
+PORT=5000
+DATABASE_URL=your_db_url
+🧪 6. If Port Already Busy (Common Issue)
+npx kill-port 5173
+🛠️ 7. Build for Production
+npm run build
+
+Preview:
+
+npm run preview
+🧯 Common Errors Fix
+❌ command not found
+
+👉 Install Node.js:
+https://nodejs.org
+
+❌ Supabase errors
+
+👉 Either:
+
+Add correct keys
+OR remove Supabase integration (I can help you replace with MySQL if needed)
+🎯 Final Run Flow (Simple Version)
+cd hydrentals-main
+npm install
+npm run dev
+
+👉 Open: http://localhost:5173

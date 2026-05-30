@@ -1,0 +1,221 @@
+
+> vite_react_shadcn_ts@0.0.0 lint
+> eslint .
+
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\chat\Chatbot.tsx
+  64:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\dashboard\AdminDashboard.tsx
+   70:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  121:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  121:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\dashboard\BecomeOwnerCard.tsx
+  10:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\dashboard\OwnerAnalytics.tsx
+   8:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  53:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\dashboard\OwnerDashboard.tsx
+  54:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\dashboard\SavedSearchesList.tsx
+  11:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  16:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\dashboard\TenantDashboard.tsx
+  55:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  82:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  82:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\dashboard\VisitRequestsList.tsx
+  11:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\home\FeaturedProperties.tsx
+  11:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  30:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\map\PropertyMap.tsx
+  6:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\property\CameraImageCapture.tsx
+  140:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  266:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  310:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\property\MapLocationPicker.tsx
+  177:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\property\PropertyCard.tsx
+  35:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  53:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  60:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\property\ReportPropertyDialog.tsx
+  19:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  67:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\property\ReviewSection.tsx
+   12:24  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+   60:6   warning  React Hook useEffect has a missing dependency: 'fetchReviews'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  133:21  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\property\SavedSearchButton.tsx
+  19:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  22:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\seo\SEOHead.tsx
+  8:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\ui\badge.tsx
+  29:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\ui\button.tsx
+  51:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\ui\command.tsx
+  24:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\ui\form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\ui\navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\ui\select.tsx
+  110:5  warning  Unused eslint-disable directive (no problems were reported from 'no-console')
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\ui\sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\ui\sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\ui\textarea.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\components\ui\toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\hooks\useAuth.tsx
+   32:24  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   61:32  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+   61:47  error    Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  174:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\hooks\useRealtimeNotifications.tsx
+   17:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   39:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\hooks\useRecentlyViewed.tsx
+  22:13  error  Empty block statement  no-empty
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\i18n\LanguageContext.tsx
+  36:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\integrations\supabase\client.ts
+  1:1  error  Do not use "@ts-nocheck" because it alters compilation errors  @typescript-eslint/ban-ts-comment
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\AddProperty.tsx
+   50:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  253:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\Auth.tsx
+  72:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\Compare.tsx
+  11:24  error    Unexpected any. Specify a different type                                                                @typescript-eslint/no-explicit-any
+  57:6   warning  React Hook useEffect has a missing dependency: 'ids'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\Contact.tsx
+  136:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\Favorites.tsx
+  19:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\ForgotPassword.tsx
+  36:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\MapView.tsx
+  24:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\MyProperties.tsx
+  30:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\Notifications.tsx
+  21:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\Properties.tsx
+   42:24  error  Unexpected any. Specify a different type                     @typescript-eslint/no-explicit-any
+  109:59  error  Unexpected any. Specify a different type                     @typescript-eslint/no-explicit-any
+  110:13  error  'ownerVerifiedMap' is never reassigned. Use 'const' instead  prefer-const
+  116:40  error  Unexpected any. Specify a different type                     @typescript-eslint/no-explicit-any
+  122:71  error  Unexpected any. Specify a different type                     @typescript-eslint/no-explicit-any
+  193:43  error  Unexpected any. Specify a different type                     @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\PropertyDetail.tsx
+   55:24  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+  284:21  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+  311:6   warning  React Hook useEffect has missing dependencies: 'addItem', 'property', and 'user?.id'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  439:33  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+  653:59  error    Unexpected any. Specify a different type                                                                                                  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\RentCalculator.tsx
+  14:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\ResetPassword.tsx
+  73:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\Settings.tsx
+  16:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\admin\AdminComplaints.tsx
+  20:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\admin\AdminDashboard.tsx
+  10:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\admin\AdminLogin.tsx
+  13:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  35:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  35:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  90:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  90:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\admin\AdminProperties.tsx
+  35:24  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  46:6   warning  React Hook useEffect has a missing dependency: 'fetchProperties'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\admin\AdminUsers.tsx
+   38:24  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+   66:6   warning  React Hook useEffect has a missing dependency: 'fetchUsers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   79:38  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+   80:51  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  145:21  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  170:21  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  188:21  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\src\pages\admin\AdminVerifications.tsx
+  36:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\supabase\functions\chat\index.ts
+  59:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\supabase\functions\send-email\index.ts
+  147:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\nnswa\Downloads\hydrentals-main\tailwind.config.ts
+  110:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+✖ 103 problems (88 errors, 15 warnings)
+  1 error and 1 warning potentially fixable with the `--fix` option.
+
