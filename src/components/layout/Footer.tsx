@@ -4,7 +4,7 @@ import {
   Phone,
   MapPin,
   Facebook,
-  YouTube,
+  Youtube,
   Instagram,
   WhatsApp
 } from 'lucide-react';
@@ -20,8 +20,8 @@ const Footer = () => {
       url: 'https://www.facebook.com/hydrentals_official/',
     },
     {
-      icon: YouTube,
-      url: 'https://www.youtube.com/@HydRentalsOfficial',
+      icon: Youtube,
+      url: 'https://www.Youtube.com/@HydRentalsOfficial',
     },
     {
       icon: Instagram,
