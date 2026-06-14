@@ -6,7 +6,7 @@ import {
   Facebook,
   Youtube,
   Instagram,
-  WhatsApp
+  MessageCircle
 } from 'lucide-react';
 import { useLanguage } from '@/i18n/LanguageContext';
 import logo from '@/assets/hydrent-logo.png';
@@ -28,8 +28,8 @@ const Footer = () => {
       url: 'https://www.instagram.com/hydrentals_official/',
     },
     {
-      icon: WhatsApp,
-      url: 'https://chat.whatsapp.com/BTyHbbf6Edj33I0aVnWuOA',
+      icon: MessageCircle,
+      url: 'https://chat.MessageCircle.com/BTyHbbf6Edj33I0aVnWuOA',
     },
   ];
 

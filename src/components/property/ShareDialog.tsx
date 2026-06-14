@@ -29,7 +29,7 @@ const ShareDialog = ({ open, onOpenChange, propertyTitle, propertyId }: ShareDia
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleWhatsApp = () => {
+  const handleMessageCircle = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`, '_blank');
   };
 
@@ -62,9 +62,9 @@ const ShareDialog = ({ open, onOpenChange, propertyTitle, propertyId }: ShareDia
             </Button>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <Button variant="outline" className="flex-col gap-2 h-auto py-4" onClick={handleWhatsApp}>
+            <Button variant="outline" className="flex-col gap-2 h-auto py-4" onClick={handleMessageCircle}>
               <MessageCircle className="w-5 h-5 text-green-500" />
-              <span className="text-xs">WhatsApp</span>
+              <span className="text-xs">MessageCircle</span>
             </Button>
             <Button variant="outline" className="flex-col gap-2 h-auto py-4" onClick={handleEmail}>
               <Mail className="w-5 h-5 text-blue-500" />
