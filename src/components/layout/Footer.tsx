@@ -29,7 +29,7 @@ const Footer = () => {
     },
     {
       icon: MessageCircle,
-      url: 'https://chat.MessageCircle.com/BTyHbbf6Edj33I0aVnWuOA',
+      url: 'https://chat.whatsapp.com/BTyHbbf6Edj33I0aVnWuOA',
     },
   ];
 
