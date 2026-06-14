@@ -112,7 +112,7 @@ async function sendBrokerReportConfirmation(reporterEmail, reporterName, brokerN
           <!-- Footer -->
           <div style="background: #f1f5f9; padding: 24px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
             <p style="color: #94a3b8; font-size: 12px; margin: 0;">© 2025 HydRentals · Hyderabad, Telangana</p>
-            <p style="color: #94a3b8; font-size: 12px; margin: 6px 0 0;">support@hydrentals.com · +91 40-XXXX-XXXX</p>
+            <p style="color: #94a3b8; font-size: 12px; margin: 6px 0 0;">support@hydrentals.com · +91 9000207739</p>
           </div>
         </div>
       `

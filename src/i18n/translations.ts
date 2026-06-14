@@ -59,7 +59,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'footer.quickLinks': 'Quick Links',
     'footer.popularAreas': 'Popular Areas',
     'footer.contactUs': 'Contact Us',
-    'footer.rights': '© 2024 HydRent. All rights reserved.',
+    'footer.rights': '© 2026 HydRentals. All rights reserved.',
     'footer.privacy': 'Privacy Policy',
     'footer.terms': 'Terms of Service',
     'footer.rentalRules': 'Rental Rules',

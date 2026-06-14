@@ -369,7 +369,7 @@ const Auth = () => {
                           id="phone"
                           name="phone"
                           type="tel"
-                          placeholder="+919876543210"
+                          placeholder="+919000207739"
                           className="pl-3"
                           required
                         />

@@ -128,7 +128,7 @@ const Terms = () => {
               <h2>9. Reporting Violations</h2>
               <p>
                 Users are encouraged to report any suspected broker activity, fake listings, or policy 
-                violations through the Platform's reporting system or by contacting support@hydrent.in. 
+                violations through the Platform's reporting system or by contacting support@hydrentals.com. 
                 All reports will be investigated, and appropriate action will be taken within 48 hours.
               </p>
 

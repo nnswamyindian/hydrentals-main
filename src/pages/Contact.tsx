@@ -136,11 +136,11 @@ const Contact = () => {
                 <CardContent className="space-y-3 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="w-4 h-4" />
-                    support@hydrent.in
+                    support@hydrentals.com
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Phone className="w-4 h-4" />
-                    +91 40-XXXX-XXXX
+                    +91 9000207739
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <MapPin className="w-4 h-4" />

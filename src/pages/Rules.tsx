@@ -72,7 +72,7 @@ const Rules = () => {
               <h2>Dispute Resolution</h2>
               <p>
                 In case of disputes, both parties are encouraged to communicate and resolve issues 
-                amicably. For unresolved issues, contact our support team at support@hydrent.in
+                amicably. For unresolved issues, contact our support team at support@hydrentals.com
               </p>
             </CardContent>
           </Card>
