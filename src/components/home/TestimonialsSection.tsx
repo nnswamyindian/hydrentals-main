@@ -66,7 +66,7 @@ const testimonials: Testimonial[] = [
     role: 'Tenant',
     rating: 5,
     text: 'What I appreciate most about HydRent is their strict no-broker policy. Every listing is verified and the GPS feature ensures photos are taken at the actual property. Highly recommend!',
-    videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    videoUrl: 'https://www.Youtube.com/embed/dQw4w9WgXcQ',
     locality: 'Kukatpally',
   },
 ];

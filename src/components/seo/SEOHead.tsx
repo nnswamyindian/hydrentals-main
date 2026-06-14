@@ -36,8 +36,8 @@ const SEOHead = ({ title, description, canonical, jsonLd }: SEOHeadProps) => {
     setMeta('og:title', pageTitle, 'property');
     setMeta('og:description', pageDesc, 'property');
     setMeta('og:url', fullCanonical, 'property');
-    setMeta('YouTube:title', pageTitle, 'name');
-    setMeta('YouTube:description', pageDesc, 'name');
+    setMeta('Youtube:title', pageTitle, 'name');
+    setMeta('Youtube:description', pageDesc, 'name');
 
     // Canonical
     let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;

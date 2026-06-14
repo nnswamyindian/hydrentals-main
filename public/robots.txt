@@ -4,7 +4,7 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
-User-agent: YouTubebot
+User-agent: Youtubebot
 Allow: /
 
 User-agent: facebookexternalhit
