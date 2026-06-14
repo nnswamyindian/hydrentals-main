@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import DashboardLayout from './DashboardLayout';
 import BecomeOwnerCard from './BecomeOwnerCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,10 +57,39 @@ const db = supabase as any;
 
 const TenantDashboard = () => {
   const { profile, roles } = useAuth();
+  const navigate = useNavigate();
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [favoriteProperties, setFavoriteProperties] = useState<Property[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const getNotificationRoute = (type: string | null) => {
+    if (type && type.startsWith('/')) {
+      return type;
+    }
+    switch (type) {
+      case 'property_approved':
+      case 'property_rejected':
+        return '/my-properties';
+      case 'new_message':
+        return '/messages';
+      case 'verification_update':
+        return '/settings';
+      case 'payment_received':
+        return '/dashboard';
+      default:
+        return '/notifications';
+    }
+  };
+
+  const markAsRead = async (id: string) => {
+    try {
+      await db.from('notifications').update({ is_read: true }).eq('id', id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -109,7 +138,14 @@ const TenantDashboard = () => {
             }
           }
         }
-        if (notificationsRes.data) setNotifications(notificationsRes.data as Notification[]);
+        if (notificationsRes.data) {
+          const mapped = (notificationsRes.data || []).map((n: any) => ({
+            ...n,
+            message: n.body,
+            type: n.link || 'info',
+          }));
+          setNotifications(mapped as Notification[]);
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -282,7 +318,19 @@ const TenantDashboard = () => {
             ) : (
               <div className="space-y-3">
                 {notifications.map((notification) => (
-                  <div key={notification.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                  <div
+                    key={notification.id}
+                    className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                    onClick={() => {
+                      if (!notification.is_read) {
+                        markAsRead(notification.id);
+                      }
+                      const route = getNotificationRoute(notification.type);
+                      if (route) {
+                        navigate(route);
+                      }
+                    }}
+                  >
                     <Bell className="w-4 h-4 mt-0.5 text-primary" />
                     <div className="flex-1">
                       <p className="text-sm font-medium">{notification.title}</p>

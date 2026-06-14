@@ -31,7 +31,7 @@ class SupabaseQueryBuilder {
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('http://localhost:3000/api/rest', {
+      const res = await fetch(getApiUrl('/api/rest'), {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -88,7 +88,7 @@ class SupabaseMock {
       return { data: { user: userStr ? JSON.parse(userStr) : null }, error: null };
     },
     signUp: async function({ email, password, options }) {
-      const res = await fetch('http://localhost:3000/api/auth/signup', {
+      const res = await fetch(getApiUrl('/api/auth/signup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -111,7 +111,7 @@ class SupabaseMock {
       return { data: { user: data.user, session: data.session }, error: null };
     },
     signInWithPassword: async function({ email, password }) {
-      const res = await fetch('http://localhost:3000/api/auth/login', {
+      const res = await fetch(getApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -137,7 +137,7 @@ class SupabaseMock {
       upload: async (path, file) => {
         const formData = new FormData();
         formData.append('images', file);
-        const res = await fetch('http://localhost:3000/api/upload', {
+        const res = await fetch(getApiUrl('/api/upload'), {
           method: 'POST',
           body: formData
         });
@@ -146,7 +146,7 @@ class SupabaseMock {
         return { data: { path: data.images[0] }, error: null };
       },
       getPublicUrl: (path) => {
-        return { data: { publicUrl: path.startsWith('http') ? path : `http://localhost:3000${path}` } };
+        return { data: { publicUrl: path.startsWith('http') ? path : getApiUrl(path) } };
       }
     })
   };
@@ -158,7 +158,7 @@ class SupabaseMock {
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const res = await fetch(`http://localhost:3000/api/edge/${name}`, {
+        const res = await fetch(getApiUrl(`/api/edge/${name}`), {
           method: 'POST',
           headers,
           body: JSON.stringify(options?.body || {})
@@ -192,3 +192,12 @@ class SupabaseMock {
 }
 
 export const supabase = new SupabaseMock();
+
+export const getApiUrl = (path: string): string => {
+  const base = import.meta.env.VITE_API_URL || 
+    ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? 'http://localhost:3000'
+      : window.location.origin);
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${cleanPath}`;
+};

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getApiUrl } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Users, Search, ArrowLeft, CheckCircle, Shield, Phone, Mail, Edit, Trash2, Plus, AlertTriangle, Download } from 'lucide-react';
 import { downloadAsCSV } from '@/lib/utils';
@@ -122,7 +122,7 @@ const AdminUsers = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await fetch('http://localhost:3000/api/auth/admin-create-user', {
+      const res = await fetch(getApiUrl('/api/auth/admin-create-user'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

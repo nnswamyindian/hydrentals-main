@@ -177,6 +177,49 @@ router.post('/', (req, res) => {
         const returnData = insertedRow ? insertedRow : payload;
         
         res.json({ data: [returnData] });
+
+        // Trigger emails and notifications for new property submissions
+        if (table === 'properties' && payload.owner_id) {
+          // 1. Send submission emails via emailService
+          try {
+            const owner = db.prepare('SELECT email, full_name FROM users WHERE id = ?').get(payload.owner_id);
+            if (owner) {
+              const admins = db.prepare("SELECT email FROM users WHERE role = 'admin'").all();
+              const adminEmails = admins.map(a => a.email).filter(Boolean);
+              if (adminEmails.length === 0) {
+                adminEmails.push('admin@hydrentals.com');
+              }
+              
+              const { sendPropertySubmissionEmails } = require('../emailService');
+              sendPropertySubmissionEmails(owner.email, owner.full_name || 'Property Owner', payload.title, payload.id, adminEmails);
+            }
+          } catch (emailErr) {
+            console.error('Failed to trigger property submission emails in rest.js:', emailErr.message);
+          }
+
+          // 2. In-app notification for the property owner
+          try {
+            const notifId = crypto.randomUUID();
+            db.prepare('INSERT INTO notifications (id, user_id, title, body, link) VALUES (?, ?, ?, ?, ?)').run(
+              notifId, payload.owner_id, 'Property Submitted Successfully', `Your property "${payload.title}" has been submitted and is pending verification.`, '/my-properties'
+            );
+          } catch (notifErr) {
+            console.error('Failed to insert owner submission notification:', notifErr.message);
+          }
+
+          // 3. In-app notifications for admins
+          try {
+            const admins = db.prepare("SELECT id FROM users WHERE role = 'admin'").all();
+            admins.forEach(admin => {
+              const notifId = crypto.randomUUID();
+              db.prepare('INSERT INTO notifications (id, user_id, title, body, link) VALUES (?, ?, ?, ?, ?)').run(
+                notifId, admin.id, 'New Property Pending Approval', `A new property "${payload.title}" has been submitted and requires review.`, '/admin/properties'
+              );
+            });
+          } catch (notifErr) {
+            console.error('Failed to insert admin submission notification:', notifErr.message);
+          }
+        }
       } catch (sqlErr) {
         console.error('[REST Insert SQL Error]', sqlErr.message);
         res.status(500).json({ data: null, error: sqlErr.message });
@@ -199,8 +242,46 @@ router.post('/', (req, res) => {
       });
 
       try {
+        // Fetch properties before update to detect status changes
+        let oldProperties = [];
+        if (table === 'properties' && payload.status) {
+          const idMod = modifiers.find(m => m.type === 'eq' && m.column === 'id');
+          if (idMod) {
+            oldProperties = db.prepare('SELECT id, owner_id, title, status FROM properties WHERE id = ?').all(idMod.value);
+          }
+        }
+
         db.prepare(queryStr).run(...params);
         res.json({ data: [payload] });
+
+        // Trigger notifications for status change (approve / reject)
+        if (table === 'properties' && payload.status && oldProperties.length > 0) {
+          const newStatus = payload.status;
+          oldProperties.forEach(prop => {
+            if (prop.status !== newStatus) {
+              let title = '';
+              let body = '';
+              if (newStatus === 'approved') {
+                title = 'Property Approved! 🎉';
+                body = `Your property listing "${prop.title}" has been verified and approved.`;
+              } else if (newStatus === 'rejected') {
+                title = 'Property Rejected ⚠️';
+                body = `Your property listing "${prop.title}" was rejected during verification.`;
+              }
+
+              if (title) {
+                try {
+                  const notifId = crypto.randomUUID();
+                  db.prepare('INSERT INTO notifications (id, user_id, title, body, link) VALUES (?, ?, ?, ?, ?)').run(
+                    notifId, prop.owner_id, title, body, '/my-properties'
+                  );
+                } catch (notifErr) {
+                  console.error('Failed to insert property status update notification:', notifErr.message);
+                }
+              }
+            }
+          });
+        }
       } catch (sqlErr) {
          res.json({ data: null, error: sqlErr.message });
       }

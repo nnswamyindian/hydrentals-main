@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { getApiUrl } from '@/integrations/supabase/client';
 
 export interface Message {
   id: string;
@@ -31,7 +32,7 @@ const getHeaders = () => {
   };
 };
 
-const API_BASE = 'http://localhost:3000/api/chat';
+const API_BASE = getApiUrl('/api/chat');
 
 export const useMessages = () => {
   const { user } = useAuth();

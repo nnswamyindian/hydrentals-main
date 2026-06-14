@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const db = require('../db');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { sendPropertySubmissionEmails } = require('../emailService');
 
 const router = express.Router();
 
@@ -189,6 +190,24 @@ router.post('/', authenticateToken, upload.array('images', 10), (req, res) => {
     const paymentId = crypto.randomUUID();
     db.prepare('INSERT INTO payments (id, user_id, property_id, amount, status, payment_type) VALUES (?, ?, ?, ?, ?, ?)')
       .run(paymentId, owner_id, id, 500, 'pending', 'listing_fee');
+
+    // Send email notifications to owner and admin asynchronously
+    try {
+      const owner = db.prepare('SELECT email, full_name FROM users WHERE id = ?').get(owner_id);
+      if (owner) {
+        // Fetch admin emails
+        const admins = db.prepare("SELECT email FROM users WHERE role = 'admin'").all();
+        const adminEmails = admins.map(a => a.email).filter(Boolean);
+        if (adminEmails.length === 0) {
+          adminEmails.push('admin@hydrentals.com'); // default fallback
+        }
+        
+        // Asynchronously dispatch emails
+        sendPropertySubmissionEmails(owner.email, owner.full_name || 'Property Owner', title, id, adminEmails);
+      }
+    } catch (emailErr) {
+      console.error('Failed to trigger property submission emails:', emailErr.message);
+    }
 
     res.json({ id, message: 'Property created successfully, awaiting approval', images });
   } catch (err) {

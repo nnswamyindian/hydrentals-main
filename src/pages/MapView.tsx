@@ -9,6 +9,7 @@ import { MapPin, Search, Filter, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { mockProperties } from '@/data/mockProperties';
 import PropertyMap from '@/components/map/PropertyMap';
+import { cn } from '@/lib/utils';
 
 interface Property {
   id: string;
@@ -27,6 +28,7 @@ const MapView = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -105,10 +107,34 @@ const MapView = () => {
     <div className="min-h-screen flex flex-col">
       <Header />
       
-      <main className="flex-1">
+      <main className="flex-1 relative">
+        {/* Floating Mobile Toggle Button */}
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[1000] md:hidden">
+          <Button
+            onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
+            className="shadow-lg gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full"
+            size="lg"
+          >
+            {viewMode === 'list' ? (
+              <>
+                <MapPin className="w-4 h-4" />
+                Show Map
+              </>
+            ) : (
+              <>
+                <Search className="w-4 h-4" />
+                Show List
+              </>
+            )}
+          </Button>
+        </div>
+
         <div className="h-[calc(100vh-4rem)] flex">
           {/* Sidebar */}
-          <div className="w-full md:w-96 h-full overflow-auto bg-background border-r border-border">
+          <div className={cn(
+            "w-full md:w-96 h-full overflow-auto bg-background border-r border-border",
+            viewMode === 'map' ? 'hidden md:block' : 'block'
+          )}>
             <div className="p-4 border-b border-border sticky top-0 bg-background z-10">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display text-lg font-semibold">Properties on Map</h2>
@@ -182,7 +208,10 @@ const MapView = () => {
           </div>
 
           {/* Map Area */}
-          <div className="hidden md:block flex-1 h-full">
+          <div className={cn(
+            "flex-1 h-full",
+            viewMode === 'list' ? 'hidden md:block' : 'block'
+          )}>
             <PropertyMap properties={filteredProperties} />
           </div>
         </div>

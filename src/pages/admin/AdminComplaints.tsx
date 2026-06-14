@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getApiUrl } from '@/integrations/supabase/client';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import {
@@ -66,7 +66,7 @@ const AdminComplaints = () => {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      const res = await fetch(`http://localhost:3000/api/contact/report-broker/${id}/status`, {
+      const res = await fetch(getApiUrl(`/api/contact/report-broker/${id}/status`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

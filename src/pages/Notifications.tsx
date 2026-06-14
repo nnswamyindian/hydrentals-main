@@ -26,6 +26,9 @@ const Notifications = () => {
   const navigate = useNavigate();
 
   const getNotificationRoute = (type: string | null) => {
+    if (type && type.startsWith('/')) {
+      return type;
+    }
     switch (type) {
       case 'property_approved':
       case 'property_rejected':
@@ -48,7 +51,14 @@ const Notifications = () => {
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
-      if (data) setNotifications(data as Notification[]);
+      if (data) {
+        const mapped = (data || []).map((n: any) => ({
+          ...n,
+          message: n.body,
+          type: n.link || 'info',
+        }));
+        setNotifications(mapped as Notification[]);
+      }
       setIsLoading(false);
     };
     fetch();

@@ -79,6 +79,13 @@ const PropertyMap = ({ properties }: PropertyMapProps) => {
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
     }
 
+    // Call invalidateSize on next frames to ensure tiles load correctly if container size changes (e.g. on mobile toggles)
+    setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    }, 200);
+
     return () => {};
   }, [properties]);
 

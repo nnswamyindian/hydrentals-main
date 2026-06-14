@@ -20,6 +20,9 @@ const NotificationBell = () => {
     useRealtimeNotifications();
 
   const getNotificationRoute = (type: string) => {
+    if (type && type.startsWith('/')) {
+      return type;
+    }
     switch (type) {
       case 'property_approved':
       case 'property_rejected':

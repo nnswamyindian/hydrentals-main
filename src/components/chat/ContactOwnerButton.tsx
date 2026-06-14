@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { MessageSquare, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getApiUrl } from '@/integrations/supabase/client';
 
 interface ContactOwnerButtonProps {
   ownerId: string;
@@ -67,7 +68,7 @@ const ContactOwnerButton = ({
     setIsSending(true);
     try {
       const token = localStorage.getItem('supabase-auth-token');
-      const res = await fetch('http://localhost:3000/api/chat/messages', {
+      const res = await fetch(getApiUrl('/api/chat/messages'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

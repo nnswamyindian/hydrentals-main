@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const path = require('path');
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -172,5 +173,156 @@ async function sendComplaintStatusUpdate(reporterEmail, reporterName, brokerName
   }
 }
 
-module.exports = { sendOTP, sendBrokerReportConfirmation, sendComplaintStatusUpdate };
+async function sendPropertySubmissionEmails(ownerEmail, ownerName, propertyTitle, propertyId, adminEmails) {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.error('❌ SMTP credentials missing. Cannot send property submission emails.');
+    return false;
+  }
+
+  // 1. Mail to Owner
+  try {
+    const ownerInfo = await transporter.sendMail({
+      from: `"HydRentals Team" <support@hydrentals.com>`,
+      to: ownerEmail,
+      subject: `🏠 Property Listing Submitted Successfully – HydRentals`,
+      text: `Dear ${ownerName}, your property listing "${propertyTitle}" has been submitted successfully and is under verification. Reference ID: #${propertyId.substring(0, 8).toUpperCase()}.`,
+      html: `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); padding: 30px 24px; text-align: center;">
+            <img src="cid:logo" alt="HydRentals Logo" style="height: 60px; width: auto; margin-bottom: 8px;" />
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">HydRentals</h1>
+            <p style="color: #94a3b8; margin: 4px 0 0; font-size: 14px;">Hyderabad's Premium Rental Platform</p>
+          </div>
+
+          <!-- Body -->
+          <div style="padding: 40px 32px;">
+            <div style="display: inline-block; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 20px; margin-bottom: 24px;">
+              <span style="color: #16a34a; font-weight: 600; font-size: 15px;">🎉 Listing Submitted Successfully</span>
+            </div>
+
+            <h2 style="color: #1e293b; font-size: 22px; margin: 0 0 12px; font-weight: 700;">Dear ${ownerName},</h2>
+            <p style="color: #475569; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+              Your property listing <strong style="color: #1e293b;">"${propertyTitle}"</strong> has been successfully received. 
+              Our team is reviewing the listing details to ensure compliance with our anti-broker policy and verify the location.
+            </p>
+
+            <!-- Status Box -->
+            <div style="background: #f8fafc; border-radius: 10px; padding: 24px; margin: 0 0 24px; border: 1px solid #e2e8f0;">
+              <h3 style="color: #1e293b; font-size: 16px; margin: 0 0 16px; font-weight: 700;">📋 What happens next?</h3>
+              <div style="display: flex; flex-direction: column; gap: 14px;">
+                <p style="margin: 0; color: #475569; font-size: 14px; line-height: 1.6;">
+                  <strong>1. Review & Verification:</strong> Admins will audit your listing description, images, and locality parameters within <strong>24 hours</strong>.
+                </p>
+                <p style="margin: 8px 0 0; color: #475569; font-size: 14px; line-height: 1.6;">
+                  <strong>2. Live Status:</strong> Once approved, you will receive an email and in-app notification confirming your listing is live.
+                </p>
+              </div>
+            </div>
+
+            <!-- Reference ID -->
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px 20px; margin: 0 0 24px;">
+              <p style="margin: 0; color: #64748b; font-size: 13px;">Listing Reference ID</p>
+              <p style="margin: 4px 0 0; color: #1d4ed8; font-weight: 700; font-size: 16px; letter-spacing: 0.5px; font-family: monospace;">#${propertyId.substring(0, 8).toUpperCase()}</p>
+            </div>
+
+            <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0;">
+              Thank you for listing your property on HydRentals. If you need to make any changes, please visit your dashboard.
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #f1f5f9; padding: 24px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">© 2025 HydRentals · Hyderabad, Telangana</p>
+            <p style="color: #94a3b8; font-size: 12px; margin: 6px 0 0;">support@hydrentals.com · +91 9000207739</p>
+          </div>
+        </div>
+      `,
+      attachments: [{
+        filename: 'hydrent-logo.png',
+        path: path.join(__dirname, '../src/assets/hydrent-logo.png'),
+        cid: 'logo'
+      }]
+    });
+    console.log(`✅ Property submission confirmation email sent to owner ${ownerEmail}`);
+  } catch (error) {
+    console.error('❌ Failed to send property submission confirmation email to owner:', error);
+  }
+
+  // 2. Mail to Admins
+  if (adminEmails && adminEmails.length > 0) {
+    try {
+      const adminInfo = await transporter.sendMail({
+        from: `"HydRentals System" <system@hydrentals.com>`,
+        to: adminEmails.join(','),
+        subject: `🔔 New Property Submission Pending Approval – HydRentals`,
+        text: `A new property listing "${propertyTitle}" has been submitted by ${ownerName} and requires admin review. Reference ID: #${propertyId.substring(0, 8).toUpperCase()}.`,
+        html: `
+          <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); padding: 30px 24px; text-align: center;">
+              <img src="cid:logo" alt="HydRentals Logo" style="height: 60px; width: auto; margin-bottom: 8px;" />
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">HydRentals</h1>
+              <p style="color: #94a3b8; margin: 4px 0 0; font-size: 14px;">Admin Security Operations Center</p>
+            </div>
+
+            <!-- Body -->
+            <div style="padding: 40px 32px;">
+              <div style="display: inline-block; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 20px; margin-bottom: 24px;">
+                <span style="color: #d97706; font-weight: 600; font-size: 15px;">🔔 Action Required: Verification Pending</span>
+              </div>
+
+              <h2 style="color: #1e293b; font-size: 22px; margin: 0 0 12px; font-weight: 700;">Hello Admin,</h2>
+              <p style="color: #475569; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+                A new property listing has been submitted for review. Please audit the details to prevent brokers from posting on the platform.
+              </p>
+
+              <!-- Property Summary -->
+              <div style="background: #f8fafc; border-radius: 10px; padding: 24px; margin: 0 0 24px; border: 1px solid #e2e8f0; font-size: 14px;">
+                <h3 style="color: #1e293b; font-size: 16px; margin: 0 0 16px; font-weight: 700;">🏠 Listing Summary</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 6px 0; color: #64748b; width: 130px;"><strong>Property Title:</strong></td>
+                    <td style="padding: 6px 0; color: #1e293b;">${propertyTitle}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #64748b;"><strong>Owner Name:</strong></td>
+                    <td style="padding: 6px 0; color: #1e293b;">${ownerName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #64748b;"><strong>Owner Email:</strong></td>
+                    <td style="padding: 6px 0; color: #1e293b;"><a href="mailto:${ownerEmail}" style="color: #4f46e5; text-decoration: none;">${ownerEmail}</a></td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; color: #64748b;"><strong>Reference ID:</strong></td>
+                    <td style="padding: 6px 0; color: #1e293b; font-family: monospace;">#${propertyId.substring(0, 8).toUpperCase()}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0;">
+                Please log into the Admin Control Panel at your earliest convenience to approve or reject this listing.
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <div style="background: #f1f5f9; padding: 24px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="color: #94a3b8; font-size: 12px; margin: 0;">© 2025 HydRentals · Hyderabad, Telangana</p>
+            </div>
+          </div>
+        `,
+        attachments: [{
+          filename: 'hydrent-logo.png',
+          path: path.join(__dirname, '../src/assets/hydrent-logo.png'),
+          cid: 'logo'
+        }]
+      });
+      console.log(`✅ Property submission alert email sent to admins: ${adminEmails.join(', ')}`);
+    } catch (error) {
+      console.error('❌ Failed to send property submission alert email to admins:', error);
+    }
+  }
+}
+
+module.exports = { sendOTP, sendBrokerReportConfirmation, sendComplaintStatusUpdate, sendPropertySubmissionEmails };
 

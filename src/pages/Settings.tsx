@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Settings as SettingsIcon, User, Bell, Shield, LogOut, Loader2, Camera } from 'lucide-react';
+import { getApiUrl } from '@/integrations/supabase/client';
 
 
 const Settings = () => {
@@ -40,7 +41,7 @@ const Settings = () => {
       // 1. Upload file to server
       const formData = new FormData();
       formData.append('images', file);
-      const uploadRes = await fetch('http://localhost:3000/api/upload', {
+      const uploadRes = await fetch(getApiUrl('/api/upload'), {
         method: 'POST',
         body: formData,
       });
@@ -52,11 +53,11 @@ const Settings = () => {
       // 2. Build full URL
       const fullUrl = uploadedPath.startsWith('http')
         ? uploadedPath
-        : `http://localhost:3000${uploadedPath}`;
+        : getApiUrl(uploadedPath);
 
       // 3. Persist avatar_url to the user's DB record
       const token = localStorage.getItem('supabase-auth-token');
-      const saveRes = await fetch('http://localhost:3000/api/auth/me/avatar', {
+      const saveRes = await fetch(getApiUrl('/api/auth/me/avatar'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +94,7 @@ const Settings = () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('supabase-auth-token');
-      const res = await fetch('http://localhost:3000/api/auth/me/profile', {
+      const res = await fetch(getApiUrl('/api/auth/me/profile'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

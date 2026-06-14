@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Home, Mail, Lock, User, ArrowRight, Building2, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getApiUrl } from '@/integrations/supabase/client';
 import logo from '@/assets/logo.svg';
 import SEOHead from '@/components/seo/SEOHead';
 
@@ -52,7 +52,7 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/api/auth/verify-otp', {
+      const res = await fetch(getApiUrl('/api/auth/verify-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: otpEmail, otp: otpCode })

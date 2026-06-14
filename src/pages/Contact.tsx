@@ -15,7 +15,9 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Shield, Award, AlertTriangle, Send, CheckCircle, Phone, Mail, MapPin, Loader2 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000/api';
+import { getApiUrl } from '@/integrations/supabase/client';
+
+const API_BASE = getApiUrl('/api');
 
 const complaintSchema = z.object({
   complainant_name: z.string().trim().min(2, 'Name is required').max(100),
