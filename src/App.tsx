@@ -36,6 +36,8 @@ import AdminComplaints from "./pages/admin/AdminComplaints";
 import AdminSettings from "./pages/admin/AdminSettings";
 import RentCalculator from "./pages/RentCalculator";
 import Chatbot from "./components/chat/Chatbot";
+import PaymentPage from "./pages/PaymentPage";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import MobileBottomNav from "./components/layout/MobileBottomNav";
 
 const queryClient = new QueryClient({
@@ -169,6 +171,22 @@ const App = () => (
             <Route path="/rules" element={<Rules />} />
             <Route path="/list-property" element={<AddProperty />} />
             <Route path="/contact" element={<Contact />} />
+            <Route
+              path="/payment/:propertyId"
+              element={
+                <ProtectedRoute requiredRoles={['owner', 'admin']}>
+                  <PaymentPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment/success"
+              element={
+                <ProtectedRoute requiredRoles={['owner', 'admin']}>
+                  <PaymentSuccess />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <MobileBottomNav />

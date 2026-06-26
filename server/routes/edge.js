@@ -10,8 +10,8 @@ router.post('/chat', (req, res) => {
   if (!message) return res.status(400).json({ error: 'Message requirement missing' });
   
   const msgLower = message.toLowerCase();
-  // Using status != rejected to get active properties locally
-  let queryStr = "SELECT * FROM properties WHERE status != 'rejected'"; 
+  // Using status = approved to get active published properties locally
+  let queryStr = "SELECT * FROM properties WHERE status = 'approved'"; 
   
   const conditions = [];
   const params = [];

@@ -324,5 +324,108 @@ async function sendPropertySubmissionEmails(ownerEmail, ownerName, propertyTitle
   }
 }
 
-module.exports = { sendOTP, sendBrokerReportConfirmation, sendComplaintStatusUpdate, sendPropertySubmissionEmails };
+async function sendPropertyApprovalPaymentEmail(ownerEmail, ownerName, propertyTitle, paymentLink) {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.error('❌ SMTP credentials missing. Cannot send property approval payment email.');
+    return false;
+  }
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"HydRentals Team" <support@hydrentals.com>`,
+      to: ownerEmail,
+      subject: `Property Approved - Complete Listing Fee Payment`,
+      text: `Dear ${ownerName},\n\nYour property "${propertyTitle}" has been approved.\n\nTo activate and publish your property on HYD Rentals, please complete the listing fee payment of ₹500.\n\nPayment Link: ${paymentLink}\n\nOnce payment is completed your property will automatically go live.\n\nRegards,\nHYD Rentals Team`,
+      html: `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+          <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); padding: 30px 24px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">HydRentals</h1>
+            <p style="color: #94a3b8; margin: 4px 0 0; font-size: 14px;">Hyderabad's Premium Rental Platform</p>
+          </div>
+          <div style="padding: 40px 32px;">
+            <div style="display: inline-block; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 20px; margin-bottom: 24px;">
+              <span style="color: #1e40af; font-weight: 600; font-size: 15px;">🏠 Listing Approved - Payment Pending</span>
+            </div>
+            <h2 style="color: #1e293b; font-size: 20px; margin: 0 0 12px; font-weight: 700;">Dear ${ownerName},</h2>
+            <p style="color: #475569; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+              Great news! Your property listing <strong>"${propertyTitle}"</strong> has been approved by our administrators.
+            </p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+              To activate and publish your listing on the public platform, please complete the property listing fee payment of <strong>₹500</strong>.
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${paymentLink}" target="_blank" style="background-color: #4f46e5; color: #ffffff; padding: 14px 28px; text-decoration: none; font-weight: bold; border-radius: 8px; display: inline-block; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
+                Pay ₹500 Listing Fee Now
+              </a>
+            </div>
+            <p style="color: #64748b; font-size: 13px; line-height: 1.6; margin: 0;">
+              If the button doesn't work, you can copy and paste the following link into your browser:<br/>
+              <a href="${paymentLink}" style="color: #4f46e5; word-break: break-all;">${paymentLink}</a>
+            </p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.7; margin: 24px 0 0;">
+              Once payment is completed, your property will automatically go live in search results.
+            </p>
+          </div>
+          <div style="background: #f1f5f9; padding: 24px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">© 2025 HydRentals · Hyderabad, Telangana</p>
+          </div>
+        </div>
+      `
+    });
+    console.log(`✅ Property approval payment email sent to: ${ownerEmail}`);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to send property approval payment email:', error);
+    return false;
+  }
+}
+
+async function sendPropertyActivationSuccessEmail(ownerEmail, ownerName, propertyTitle) {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.error('❌ SMTP credentials missing. Cannot send property activation success email.');
+    return false;
+  }
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"HydRentals Team" <support@hydrentals.com>`,
+      to: ownerEmail,
+      subject: `Property Activated Successfully`,
+      text: `Dear ${ownerName},\n\nYour payment has been received.\n\nYour property "${propertyTitle}" is now live on HYD Rentals.\n\nThank you for listing with us.\n\nRegards,\nHYD Rentals Team`,
+      html: `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+          <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); padding: 30px 24px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">HydRentals</h1>
+            <p style="color: #94a3b8; margin: 4px 0 0; font-size: 14px;">Hyderabad's Premium Rental Platform</p>
+          </div>
+          <div style="padding: 40px 32px;">
+            <div style="display: inline-block; background: #d1fae5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 20px; margin-bottom: 24px;">
+              <span style="color: #065f46; font-weight: 600; font-size: 15px;">🚀 Property Listing Live</span>
+            </div>
+            <h2 style="color: #1e293b; font-size: 20px; margin: 0 0 12px; font-weight: 700;">Dear ${ownerName},</h2>
+            <p style="color: #475569; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+              Your listing fee payment of ₹500 has been verified successfully.
+            </p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+              Your property listing <strong>"${propertyTitle}"</strong> is now active and live on HydRentals! It can now be searched and viewed by potential tenants.
+            </p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+              Thank you for listing with us and keeping HydRentals a broker-free community.
+            </p>
+          </div>
+          <div style="background: #f1f5f9; padding: 24px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">© 2025 HydRentals · Hyderabad, Telangana</p>
+          </div>
+        </div>
+      `
+    });
+    console.log(`✅ Property activation success email sent to: ${ownerEmail}`);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to send property activation success email:', error);
+    return false;
+  }
+}
+
+module.exports = { sendOTP, sendBrokerReportConfirmation, sendComplaintStatusUpdate, sendPropertySubmissionEmails, sendPropertyApprovalPaymentEmail, sendPropertyActivationSuccessEmail };
 

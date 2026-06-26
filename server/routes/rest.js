@@ -6,7 +6,7 @@ const { JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     let { table, action, columns, payload, modifiers } = req.body;
 
@@ -143,6 +143,13 @@ router.post('/', (req, res) => {
                return d;
             });
           }
+          if (columns.includes('payments')) {
+             const allPaymentsRaw = db.prepare('SELECT * FROM payments').all();
+             data = data.map(d => {
+                d.payments = allPaymentsRaw.find(p => p.property_id === d.id) || null;
+                return d;
+             });
+          }
         }
 
         res.json({ data });
@@ -227,6 +234,143 @@ router.post('/', (req, res) => {
     }
 
     else if (action === 'update') {
+      const isAdmin = user && user.role === 'admin';
+
+      // 1. Secure payments table updates (Admins only)
+      if (table === 'payments' && !isAdmin) {
+        return res.status(403).json({ error: 'Forbidden: Only administrators can update payment records.' });
+      }
+
+      // 2. Secure properties table updates (Admins & Owners only)
+      if (table === 'properties') {
+        const idMod = modifiers.find(m => m.type === 'eq' && m.column === 'id');
+        if (!idMod) {
+          return res.status(400).json({ error: 'Property ID filter missing for update.' });
+        }
+        
+        const existingProperty = db.prepare('SELECT owner_id, status FROM properties WHERE id = ?').get(idMod.value);
+        if (!existingProperty) {
+          return res.status(404).json({ error: 'Property not found.' });
+        }
+
+        if (!isAdmin) {
+          // Check ownership
+          if (existingProperty.owner_id !== user.id) {
+            return res.status(403).json({ error: 'Forbidden: You do not own this property.' });
+          }
+          
+          // Non-admins cannot alter status to approved/pending_payment/rejected directly
+          if (payload.status && payload.status !== 'pending') {
+            return res.status(403).json({ error: 'Forbidden: Owners cannot change property status directly.' });
+          }
+          
+          // Non-admins cannot alter is_verified
+          if (payload.is_verified !== undefined) {
+            delete payload.is_verified;
+          }
+        }
+      }
+
+      // Fetch properties before update to detect status changes
+      let oldProperties = [];
+      if (table === 'properties' && payload.status) {
+        const idMod = modifiers.find(m => m.type === 'eq' && m.column === 'id');
+        if (idMod) {
+          oldProperties = db.prepare('SELECT id, owner_id, title, status FROM properties WHERE id = ?').all(idMod.value);
+        }
+      }
+
+      // 3. Intercept property approval by Admin -> change to pending_payment, create link
+      if (table === 'properties' && payload.status === 'approved' && isAdmin) {
+        if (oldProperties.length > 0 && (oldProperties[0].status === 'pending' || oldProperties[0].status === 'rejected')) {
+          payload.status = 'pending_payment';
+          
+          const propertyId = oldProperties[0].id;
+          const ownerId = oldProperties[0].owner_id;
+          const owner = db.prepare('SELECT email, full_name, phone FROM users WHERE id = ?').get(ownerId);
+          
+          let paymentLinkUrl = '';
+          let razorpayOrderId = '';
+          
+          const key_id = process.env.RAZORPAY_KEY_ID;
+          const key_secret = process.env.RAZORPAY_KEY_SECRET;
+          
+          if (!key_id || !key_secret) {
+            console.error('❌ CRITICAL: Razorpay credentials missing on admin approval.');
+            return res.status(500).json({ error: 'CRITICAL: Razorpay API keys are not configured in the server environment.' });
+          }
+
+          try {
+            const Razorpay = require('razorpay');
+            const razorpay = new Razorpay({
+              key_id,
+              key_secret
+            });
+            
+            const linkData = await razorpay.paymentLink.create({
+              amount: 50000, // ₹500
+              currency: 'INR',
+              accept_partial: false,
+              description: 'HYD Rentals Property Listing Fee',
+              customer: {
+                name: owner.full_name || 'Property Owner',
+                email: owner.email,
+                contact: owner.phone || ''
+              },
+              notify: {
+                sms: false,
+                email: false
+              },
+              notes: {
+                property_id: propertyId,
+                user_id: ownerId
+              },
+              callback_url: `${req.headers.origin || 'http://localhost:5173'}/payment/success?property_id=${propertyId}`,
+              callback_method: 'get'
+            });
+            
+            paymentLinkUrl = linkData.short_url;
+            razorpayOrderId = linkData.order_id || linkData.id;
+          } catch (razorpayErr) {
+            console.error('Error creating Razorpay Payment Link:', razorpayErr.message);
+            return res.status(500).json({ error: `Razorpay Integration Error: ${razorpayErr.message}` });
+          }
+          
+          // Update/insert listing payment log
+          const existingPayment = db.prepare('SELECT id FROM payments WHERE property_id = ?').get(propertyId);
+          if (existingPayment) {
+            db.prepare('UPDATE payments SET amount = 500, status = \'pending\', payment_link = ?, razorpay_order_id = ? WHERE property_id = ?')
+              .run(paymentLinkUrl, razorpayOrderId, propertyId);
+          } else {
+            const paymentId = crypto.randomUUID();
+            db.prepare('INSERT INTO payments (id, user_id, property_id, amount, status, payment_type, payment_link, razorpay_order_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+              .run(paymentId, ownerId, propertyId, 500, 'pending', 'listing_fee', paymentLinkUrl, razorpayOrderId);
+          }
+          
+          // Send invoice notification email
+          try {
+            const { sendPropertyApprovalPaymentEmail } = require('../emailService');
+            sendPropertyApprovalPaymentEmail(owner.email, owner.full_name || 'Property Owner', oldProperties[0].title, paymentLinkUrl);
+          } catch (emailErr) {
+            console.error('Failed to send property approval payment email:', emailErr.message);
+          }
+          
+          // Emit in-app notification to Owner
+          try {
+            const notifId = crypto.randomUUID();
+            db.prepare('INSERT INTO notifications (id, user_id, title, body, link) VALUES (?, ?, ?, ?, ?)').run(
+              notifId, 
+              ownerId, 
+              'Property Approved - Payment Required', 
+              `Your property "${oldProperties[0].title}" has been approved. Please complete the listing fee payment to publish it.`, 
+              `/dashboard`
+            );
+          } catch (notifErr) {
+            console.error('Failed to create owner notification for property approval:', notifErr.message);
+          }
+        }
+      }
+
       const keys = Object.keys(payload);
       const setArray = keys.map(k => `${k} = ?`).join(', ');
       
@@ -242,15 +386,6 @@ router.post('/', (req, res) => {
       });
 
       try {
-        // Fetch properties before update to detect status changes
-        let oldProperties = [];
-        if (table === 'properties' && payload.status) {
-          const idMod = modifiers.find(m => m.type === 'eq' && m.column === 'id');
-          if (idMod) {
-            oldProperties = db.prepare('SELECT id, owner_id, title, status FROM properties WHERE id = ?').all(idMod.value);
-          }
-        }
-
         db.prepare(queryStr).run(...params);
         res.json({ data: [payload] });
 

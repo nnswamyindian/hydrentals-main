@@ -83,13 +83,14 @@ const OwnerDashboard = () => {
 
   const approvedCount = properties.filter((p) => p.status === 'approved').length;
   const pendingCount = properties.filter((p) => p.status === 'pending').length;
+  const pendingPaymentCount = properties.filter((p) => p.status === 'pending_payment').length;
   const rejectedCount = properties.filter((p) => p.status === 'rejected').length;
 
   const stats = [
     { label: 'Total Properties', value: properties.length, icon: Building2, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
     { label: 'Active Listings', value: approvedCount, icon: CheckCircle, color: 'text-green-500', bgColor: 'bg-green-500/10' },
-    { label: 'Pending Approval', value: pendingCount, icon: Clock, color: 'text-amber-500', bgColor: 'bg-amber-500/10' },
-    { label: 'Rejected', value: rejectedCount, icon: XCircle, color: 'text-red-500', bgColor: 'bg-red-500/10' },
+    { label: 'Pending Payment', value: pendingPaymentCount, icon: IndianRupee, color: 'text-amber-500', bgColor: 'bg-amber-500/10' },
+    { label: 'Pending Approval', value: pendingCount, icon: Clock, color: 'text-zinc-500', bgColor: 'bg-zinc-500/10' },
   ];
 
   const isAlsoTenant = roles.includes('tenant');
@@ -99,7 +100,9 @@ const OwnerDashboard = () => {
       case 'approved':
         return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Live</Badge>;
       case 'pending':
-        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Pending</Badge>;
+        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Pending Approval</Badge>;
+      case 'pending_payment':
+        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Pending Payment</Badge>;
       case 'rejected':
         return <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Rejected</Badge>;
       default:
@@ -142,6 +145,43 @@ const OwnerDashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Pending Payments Alert Card */}
+        {properties.some(p => p.status === 'pending_payment') && (
+          <div className="space-y-4">
+            <h3 className="font-display font-semibold text-lg flex items-center gap-2 text-amber-600">
+              <IndianRupee className="w-5 h-5 text-amber-500" />
+              Action Required: Complete Listing Payments
+            </h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              {properties.filter(p => p.status === 'pending_payment').map(p => {
+                const checkoutLink = `/payment/${p.id}`;
+                return (
+                  <Card key={p.id} className="border-amber-500/20 bg-amber-500/5 shadow-sm relative overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base truncate">{p.title}</CardTitle>
+                      <CardDescription>{p.locality}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Listing Activation Fee</p>
+                          <p className="text-lg font-bold text-amber-700">₹500</p>
+                        </div>
+                        <Button asChild size="sm" variant="hero">
+                          <Link to={checkoutLink}>
+                            Pay Listing Fee
+                            <ArrowRight className="w-4 h-4 ml-1.5" />
+                          </Link>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Quick Stats */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -8,4 +8,24 @@ const db = new Database(dbPath, { verbose: console.log });
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+// Run SQLite migrations automatically on start
+const columnsToAdd = [
+  { name: 'payment_method', type: 'TEXT' },
+  { name: 'transaction_id', type: 'TEXT' },
+  { name: 'razorpay_order_id', type: 'TEXT' },
+  { name: 'razorpay_payment_id', type: 'TEXT' },
+  { name: 'razorpay_signature', type: 'TEXT' },
+  { name: 'payment_link', type: 'TEXT' },
+  { name: 'paid_at', type: 'DATETIME' }
+];
+
+for (const col of columnsToAdd) {
+  try {
+    db.prepare(`ALTER TABLE payments ADD COLUMN ${col.name} ${col.type}`).run();
+    console.log(`Added column ${col.name} to payments table`);
+  } catch (e) {
+    // Column already exists, ignore error
+  }
+}
+
 module.exports = db;

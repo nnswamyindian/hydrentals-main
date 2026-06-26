@@ -22,8 +22,13 @@ const uploadRoutes = require('./routes/upload');
 const edgeRoutes = require('./routes/edge');
 const chatRoutes = require('./routes/chat');
 const contactRoutes = require('./routes/contact');
+const razorpayRoutes = require('./routes/razorpay');
+const paymentsRoutes = require('./routes/payments');
 
 app.use(cors());
+// Mount Razorpay webhook receiver before global JSON body parsing
+app.use('/api/razorpay', razorpayRoutes);
+
 app.use(express.json());
 app.use('/uploads', express.static(uploadsDir));
 
@@ -35,6 +40,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/edge', edgeRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/payments', paymentsRoutes);
 
 // Root test endpoint
 app.get('/api/health', (req, res) => {

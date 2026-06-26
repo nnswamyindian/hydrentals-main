@@ -63,6 +63,13 @@ CREATE TABLE IF NOT EXISTS payments (
   amount REAL NOT NULL,
   status TEXT DEFAULT 'pending',
   payment_type TEXT,
+  payment_method TEXT,
+  transaction_id TEXT,
+  razorpay_order_id TEXT,
+  razorpay_payment_id TEXT,
+  razorpay_signature TEXT,
+  payment_link TEXT,
+  paid_at DATETIME,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY(property_id) REFERENCES properties(id) ON DELETE CASCADE

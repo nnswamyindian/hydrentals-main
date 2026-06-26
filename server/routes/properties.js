@@ -216,4 +216,125 @@ router.post('/', authenticateToken, upload.array('images', 10), (req, res) => {
   }
 });
 
+// GET /:id/payment-details - Fetch payment info for checkout screen
+router.get('/:id/payment-details', authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const { id: userId, role } = req.user;
+
+  try {
+    const property = db.prepare('SELECT id, title, rent, owner_id, locality FROM properties WHERE id = ?').get(id);
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+
+    // Restrict access to the property owner or administrators
+    if (property.owner_id !== userId && role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: Access denied to property payment details' });
+    }
+
+    const payment = db.prepare('SELECT id, amount, status, payment_link, razorpay_order_id FROM payments WHERE property_id = ?').get(id);
+    if (!payment) return res.status(404).json({ error: 'Payment record not found for this property' });
+
+    const owner = db.prepare('SELECT email, full_name, phone FROM users WHERE id = ?').get(property.owner_id);
+    if (!owner) return res.status(404).json({ error: 'Property owner account not found' });
+
+    res.json({
+      property,
+      payment,
+      owner: {
+        name: owner.full_name || 'Property Owner',
+        email: owner.email,
+        phone: owner.phone || ''
+      },
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID || ''
+    });
+  } catch (err) {
+    console.error('Error fetching payment details:', err.message);
+    res.status(500).json({ error: 'Server error retrieving payment details' });
+  }
+});
+
+// POST /:id/manual-verify-payment - Admin override to manually verify listing payment
+router.post('/:id/manual-verify-payment', authenticateToken, requireRole('admin'), (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const property = db.prepare('SELECT title, owner_id FROM properties WHERE id = ?').get(id);
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+
+    let success = false;
+    db.transaction(() => {
+      // 1. Mark payment as completed
+      db.prepare(`
+        UPDATE payments 
+        SET status = 'completed', 
+            payment_method = 'manual_admin', 
+            razorpay_payment_id = ?, 
+            paid_at = CURRENT_TIMESTAMP 
+        WHERE property_id = ?
+      `).run('manual_' + crypto.randomUUID().substring(0, 8), id);
+
+      // 2. Approve property listing
+      db.prepare("UPDATE properties SET status = 'approved', is_verified = 1 WHERE id = ?").run(id);
+
+      // 3. Dispatch in-app notification
+      const notifId = crypto.randomUUID();
+      db.prepare(`
+        INSERT INTO notifications (id, user_id, title, body, link) 
+        VALUES (?, ?, ?, ?, ?)
+      `).run(
+        notifId, 
+        property.owner_id, 
+        'Property Listing Published! 🚀', 
+        'Your listing was manually verified and published by our administrator.', 
+        '/my-properties'
+      );
+
+      success = true;
+    })();
+
+    if (success) {
+      // 4. Send confirmation email to property owner
+      try {
+        const owner = db.prepare('SELECT email, full_name FROM users WHERE id = ?').get(property.owner_id);
+        if (owner) {
+          const { sendPropertyActivationSuccessEmail } = require('../emailService');
+          sendPropertyActivationSuccessEmail(owner.email, owner.full_name || 'Property Owner', property.title);
+        }
+      } catch (emailErr) {
+        console.error('Failed to trigger manual verification success email:', emailErr.message);
+      }
+
+      return res.json({ success: true, message: 'Property manually verified and published successfully' });
+    }
+  } catch (err) {
+    console.error('Error during manual property verification:', err.message);
+    res.status(500).json({ error: 'Server error during manual verification' });
+  }
+});
+
+// POST /:id/resend-payment-link - Admin resends the listing fee invoice email
+router.post('/:id/resend-payment-link', authenticateToken, requireRole('admin'), (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const property = db.prepare('SELECT title, owner_id FROM properties WHERE id = ?').get(id);
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+
+    const payment = db.prepare('SELECT payment_link FROM payments WHERE property_id = ?').get(id);
+    if (!payment || !payment.payment_link) {
+      return res.status(404).json({ error: 'No active payment link found for this property listing' });
+    }
+
+    const owner = db.prepare('SELECT email, full_name FROM users WHERE id = ?').get(property.owner_id);
+    if (!owner) return res.status(404).json({ error: 'Property owner account not found' });
+
+    const { sendPropertyApprovalPaymentEmail } = require('../emailService');
+    sendPropertyApprovalPaymentEmail(owner.email, owner.full_name || 'Property Owner', property.title, payment.payment_link);
+
+    res.json({ success: true, message: 'Payment link invoice resent successfully' });
+  } catch (err) {
+    console.error('Error resending listing payment link:', err.message);
+    res.status(500).json({ error: 'Server error resending payment link email' });
+  }
+});
+
 module.exports = router;

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getApiUrl } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
   Building2,
@@ -32,6 +32,14 @@ interface Property {
   owner_id: string;
   property_type: string;
   created_at: string;
+  payments?: {
+    id: string;
+    amount: number;
+    status: string;
+    payment_link?: string;
+    razorpay_order_id?: string;
+    razorpay_payment_id?: string;
+  } | null;
 }
 
 const db = supabase as any;
@@ -51,7 +59,7 @@ const AdminProperties = () => {
   const fetchProperties = async () => {
     setIsLoading(true);
     try {
-      let query = db.from('properties').select('*').order('created_at', { ascending: false });
+      let query = db.from('properties').select('*, payments(*)').order('created_at', { ascending: false });
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
@@ -74,11 +82,58 @@ const AdminProperties = () => {
 
       if (error) throw error;
 
-      setProperties((prev) => prev.map((p) => (p.id === propertyId ? { ...p, status: 'approved' } : p)));
-      toast({ title: 'Property approved', description: 'The property is now live.' });
+      toast({ title: 'Property approved', description: 'Listing approved. Payment link sent to the owner.' });
+      fetchProperties();
     } catch (error) {
       console.error('Error approving property:', error);
       toast({ title: 'Error', description: 'Failed to approve property.', variant: 'destructive' });
+    }
+  };
+
+  const handleResendLink = async (propertyId: string) => {
+    try {
+      const token = localStorage.getItem('supabase-auth-token');
+      const res = await fetch(getApiUrl(`/api/properties/${propertyId}/resend-payment-link`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to resend payment link');
+      }
+
+      toast({ title: 'Success', description: 'Payment link email resent successfully.' });
+    } catch (error: any) {
+      console.error(error);
+      toast({ title: 'Error', description: error.message || 'Failed to resend payment link.', variant: 'destructive' });
+    }
+  };
+
+  const handleManualVerify = async (propertyId: string) => {
+    if (!window.confirm('Are you sure you want to manually verify payment for this property and publish it live?')) return;
+    
+    try {
+      const token = localStorage.getItem('supabase-auth-token');
+      const res = await fetch(getApiUrl(`/api/properties/${propertyId}/manual-verify-payment`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to manually verify payment');
+      }
+
+      toast({ title: 'Listing Published', description: 'Listing was manually verified and is now live.' });
+      fetchProperties();
+    } catch (error: any) {
+      console.error(error);
+      toast({ title: 'Error', description: error.message || 'Failed to verify payment.', variant: 'destructive' });
     }
   };
 
@@ -99,9 +154,11 @@ const AdminProperties = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Approved</Badge>;
+        return <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Approved / Live</Badge>;
       case 'pending':
-        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Pending</Badge>;
+        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Pending Review</Badge>;
+      case 'pending_payment':
+        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Pending Payment</Badge>;
       case 'rejected':
         return <Badge className="bg-red-500/10 text-red-600 border-red-500/20">Rejected</Badge>;
       default:
@@ -156,8 +213,9 @@ const AdminProperties = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="pending">Pending Review</SelectItem>
+                  <SelectItem value="pending_payment">Pending Payment</SelectItem>
+                  <SelectItem value="approved">Approved / Live</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
               </Select>
@@ -202,7 +260,7 @@ const AdminProperties = () => {
                         <span className="capitalize">{property.property_type}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Button variant="outline" size="sm" asChild>
                         <Link to={`/property/${property.id}`}>
                           <Eye className="w-4 h-4 mr-1" />
@@ -218,6 +276,31 @@ const AdminProperties = () => {
                           <Button size="sm" onClick={() => handleApprove(property.id)}>
                             <CheckCircle className="w-4 h-4 mr-1" />
                             Approve
+                          </Button>
+                        </>
+                      )}
+                      {property.status === 'pending_payment' && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const link = property.payments?.payment_link;
+                              if (link) {
+                                navigator.clipboard.writeText(link);
+                                toast({ title: 'Link Copied', description: 'Payment Link copied to clipboard.' });
+                              } else {
+                                toast({ title: 'Error', description: 'No payment link found.', variant: 'destructive' });
+                              }
+                            }}
+                          >
+                            Copy Link
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleResendLink(property.id)}>
+                            Resend Email
+                          </Button>
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleManualVerify(property.id)}>
+                            Verify Paid
                           </Button>
                         </>
                       )}
