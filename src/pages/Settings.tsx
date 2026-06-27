@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -31,6 +31,15 @@ const Settings = () => {
     messages: true,
     propertyUpdates: true,
   });
+  useEffect(() => {
+    if (profile) {
+      setAvatarUrl(profile.avatar_url);
+      setFormData({
+        fullName: profile.full_name || '',
+        phone: profile.phone || '',
+      });
+    }
+  }, [profile]);
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

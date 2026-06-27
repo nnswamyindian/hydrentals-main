@@ -80,7 +80,7 @@ const App = () => (
             <Route
               path="/add-property"
               element={
-                <ProtectedRoute requiredRoles={['owner', 'admin']}>
+                <ProtectedRoute requiredRoles={['owner', 'admin', 'subadmin']}>
                   <AddProperty />
                 </ProtectedRoute>
               }
@@ -133,7 +133,7 @@ const App = () => (
             <Route
               path="/my-properties"
               element={
-                <ProtectedRoute requiredRoles={['owner', 'admin']}>
+                <ProtectedRoute requiredRoles={['owner', 'admin', 'subadmin']}>
                   <MyProperties />
                 </ProtectedRoute>
               }
@@ -174,7 +174,7 @@ const App = () => (
             <Route
               path="/payment/:propertyId"
               element={
-                <ProtectedRoute requiredRoles={['owner', 'admin']}>
+                <ProtectedRoute requiredRoles={['owner', 'admin', 'subadmin']}>
                   <PaymentPage />
                 </ProtectedRoute>
               }
@@ -182,7 +182,7 @@ const App = () => (
             <Route
               path="/payment/success"
               element={
-                <ProtectedRoute requiredRoles={['owner', 'admin']}>
+                <ProtectedRoute requiredRoles={['owner', 'admin', 'subadmin']}>
                   <PaymentSuccess />
                 </ProtectedRoute>
               }

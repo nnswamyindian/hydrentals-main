@@ -25,7 +25,36 @@ const contactRoutes = require('./routes/contact');
 const razorpayRoutes = require('./routes/razorpay');
 const paymentsRoutes = require('./routes/payments');
 
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
+// Protect API with security headers
+app.use(helmet({
+  crossOriginResourcePolicy: false, // Allow serving local uploaded image assets
+  contentSecurityPolicy: false,     // Allow frontend integration during dev
+}));
+
 app.use(cors());
+
+// Global API rate limiting
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // Limit each IP to 500 requests per windowMs
+  message: { error: 'Too many requests from this IP, please try again later.' }
+});
+
+// Stricter rate limiting for auth endpoints (signup/login/OTP)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Limit each IP to 30 authentication requests per windowMs
+  message: { error: 'Too many authentication attempts. Please try again after 15 minutes.' }
+});
+
+app.use('/api', globalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);
+app.use('/api/auth/send-login-otp', authLimiter);
+
 // Mount Razorpay webhook receiver before global JSON body parsing
 app.use('/api/razorpay', razorpayRoutes);
 

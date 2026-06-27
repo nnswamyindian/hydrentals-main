@@ -33,8 +33,8 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col pb-16 md:pb-0">
       <SEOHead
-        title="Find Rental Homes in Hyderabad"
-        description="Discover verified PGs, apartments, co-living spaces near HITEC City, Gachibowli, Madhapur. Trusted by 50,000+ tenants in Hyderabad."
+        title="Verified PGs, Flats & Apartments for Rent in Hyderabad - Broker-Free | HydRent"
+        description="Find direct owner flats, verified hostels, PG rooms, and co-living spaces for rent in Hyderabad (Gachibowli, Madhapur, Kondapur, HITEC City). No broker fees, instant setup!"
         jsonLd={jsonLd}
       />
       <Header />

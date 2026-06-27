@@ -4,6 +4,9 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Camera, X, MapPin, Loader2, RefreshCw } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface CapturedImage {
   id: string;
@@ -27,6 +30,8 @@ interface CameraImageCaptureProps {
 const CameraImageCapture = forwardRef<CameraImageCaptureRef, CameraImageCaptureProps>(
   ({ userId, maxImages = 5 }, ref) => {
     const { toast } = useToast();
+    const { roles } = useAuth();
+    const isSubAdmin = roles?.includes('subadmin') || roles?.includes('admin');
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -411,18 +416,68 @@ const CameraImageCapture = forwardRef<CameraImageCaptureRef, CameraImageCaptureP
 
         {/* Open Camera Button */}
         {!isCameraOpen && capturedImages.length < maxImages && (
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-32 border-dashed flex flex-col gap-2"
-            onClick={startCamera}
-          >
-            <Camera className="w-8 h-8" />
-            <span>Open Camera to Capture Photos</span>
-            <span className="text-xs text-muted-foreground">
-              Photos will include GPS coordinates
-            </span>
-          </Button>
+          <div className="space-y-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-32 border-dashed flex flex-col gap-2"
+              onClick={startCamera}
+            >
+              <Camera className="w-8 h-8" />
+              <span>Open Camera to Capture Photos</span>
+              <span className="text-xs text-muted-foreground">
+                Photos will include GPS coordinates
+              </span>
+            </Button>
+
+            {isSubAdmin && (
+              <div className="space-y-2 p-4 border border-dashed rounded-lg bg-muted/30">
+                <Label htmlFor="manual-photos" className="text-sm font-medium flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-primary" />
+                  Sub-Admin: Upload Photos Manually
+                </Label>
+                <Input
+                  id="manual-photos"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="cursor-pointer"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (!files) return;
+                    
+                    const newImages: CapturedImage[] = [];
+                    for (let i = 0; i < files.length; i++) {
+                      const file = files[i];
+                      const url = URL.createObjectURL(file);
+                      const randId = Math.random().toString(36).substring(2, 11);
+                      newImages.push({
+                        id: randId,
+                        url,
+                        file,
+                        latitude: null,
+                        longitude: null,
+                        timestamp: new Date().toISOString(),
+                      });
+                    }
+                    
+                    setCapturedImages((prev) => {
+                      const combined = [...prev, ...newImages];
+                      return combined.slice(0, maxImages);
+                    });
+                    
+                    toast({
+                      title: 'Photos Added',
+                      description: `Successfully added ${files.length} photo(s) manually.`,
+                    });
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Select image files from your computer. Max {maxImages} photos.
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Captured Images Grid */}

@@ -136,10 +136,10 @@ const AddProperty = () => {
     }
 
     // Check if user is an owner
-    if (!roles.includes('owner') && !roles.includes('admin')) {
+    if (!roles.includes('owner') && !roles.includes('admin') && !roles.includes('subadmin')) {
       toast({
         title: 'Owner account required',
-        description: 'You need to register as an owner to list properties.',
+        description: 'You need to register as an owner or sub-admin to list properties.',
         variant: 'destructive',
       });
       return;
@@ -198,6 +198,8 @@ const AddProperty = () => {
       }
 
       // Create property with images
+      const isSubAdmin = roles.includes('subadmin');
+
       const { data: property, error: propertyError } = await db
         .from('properties')
         .insert({
@@ -227,25 +229,29 @@ const AddProperty = () => {
           longitude: propertyLocation.lng,
           is_direct_owner: formData.isDirectOwner,
           unavailable_dates: unavailableDates.map(d => d.toISOString().split('T')[0]),
-          status: 'pending',
+          status: isSubAdmin ? 'approved' : 'pending',
         })
         .select()
         .single();
 
       if (propertyError) throw propertyError;
 
-      // Create payment record
-      await db.from('payments').insert({
-        user_id: user.id,
-        property_id: property.id,
-        amount: 500,
-        status: 'pending',
-        payment_type: 'listing_fee',
-      });
+      if (!isSubAdmin) {
+        // Create payment record
+        await db.from('payments').insert({
+          user_id: user.id,
+          property_id: property.id,
+          amount: 500,
+          status: 'pending',
+          payment_type: 'listing_fee',
+        });
+      }
 
       toast({
-        title: 'Property submitted!',
-        description: 'Your property is pending approval. Payment of ₹500 is required.',
+        title: isSubAdmin ? 'Property published!' : 'Property submitted!',
+        description: isSubAdmin 
+          ? 'Your property has been published and is now live.' 
+          : 'Your property is pending approval. Payment of ₹500 is required.',
       });
 
       queryClient.invalidateQueries({ queryKey: ['properties'] });

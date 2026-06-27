@@ -64,12 +64,19 @@ const ForgotPassword = () => {
                 <p className="text-muted-foreground mb-6">
                   We sent a password reset link to <strong>{email}</strong>
                 </p>
-                <Button asChild variant="outline">
-                  <Link to="/auth">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Login
-                  </Link>
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button asChild variant="hero">
+                    <Link to="/reset-password">
+                      Proceed to Reset Password
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link to="/auth">
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back to Login
+                    </Link>
+                  </Button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">

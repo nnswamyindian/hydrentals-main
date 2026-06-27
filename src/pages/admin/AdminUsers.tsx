@@ -211,6 +211,8 @@ const AdminUsers = () => {
     switch (role) {
       case 'admin':
         return <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20">Admin</Badge>;
+      case 'subadmin':
+        return <Badge className="bg-indigo-500/10 text-indigo-600 border-indigo-500/20">Sub Admin</Badge>;
       case 'owner':
         return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Owner</Badge>;
       case 'tenant':
@@ -381,6 +383,7 @@ const AdminUsers = () => {
                   <SelectContent>
                     <SelectItem value="tenant">Tenant</SelectItem>
                     <SelectItem value="owner">Property Owner</SelectItem>
+                    <SelectItem value="subadmin">Sub Admin</SelectItem>
                     <SelectItem value="admin">Administrator</SelectItem>
                   </SelectContent>
                 </Select>
@@ -424,6 +427,7 @@ const AdminUsers = () => {
                   <SelectContent>
                     <SelectItem value="tenant">Tenant</SelectItem>
                     <SelectItem value="owner">Property Owner</SelectItem>
+                    <SelectItem value="subadmin">Sub Admin</SelectItem>
                     <SelectItem value="admin">Administrator</SelectItem>
                   </SelectContent>
                 </Select>

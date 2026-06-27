@@ -355,7 +355,10 @@ const Properties = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-muted/30">
-      <SEOHead title="Browse Properties" description="Search and filter verified rental properties. Find PGs, apartments, and co-living spaces in top localities of Hyderabad." />
+      <SEOHead 
+        title="Properties for Rent in Gachibowli, Madhapur, Kondapur Hyderabad | PGs & Flats" 
+        description="Explore broker-free flats, luxury PGs, hostels, and co-living spaces for rent in top areas of Hyderabad. Search by price, furnished status, and direct owner listings." 
+      />
       <Header />
       
       <main className="flex-1">

@@ -363,11 +363,47 @@ const PropertyDetail = () => {
 
   const amenities = property.amenities || [];
 
+  const seoTitle = `${property.room_type ? property.room_type.toUpperCase() + ' ' : ''}${property.property_type === 'pg' ? 'PG / Hostel' : 'Flat/Apartment'} for Rent in ${property.locality}, Hyderabad | HydRent`;
+  const seoDescription = `Verified ${property.property_type === 'pg' ? 'PG / co-living stay' : 'apartment'} at ${property.locality}, Hyderabad. Rent: ₹${property.rent.toLocaleString()}/month. Broker-free, direct owner verification, and premium amenities.`;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': property.property_type === 'pg' ? 'Accommodation' : 'Apartment',
+    name: property.title,
+    description: property.description || seoDescription,
+    url: `${window.location.origin}/property/${property.id}`,
+    image: images,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: property.locality,
+      addressRegion: 'Telangana',
+      addressCountry: 'IN',
+      addressLocalityName: 'Hyderabad',
+    },
+    geo: property.latitude && property.longitude ? {
+      '@type': 'GeoCoordinates',
+      latitude: property.latitude,
+      longitude: property.longitude,
+    } : undefined,
+    offers: {
+      '@type': 'Offer',
+      price: property.rent,
+      priceCurrency: 'INR',
+      priceSpecification: {
+        '@type': 'UnitPriceSpecification',
+        price: property.rent,
+        priceCurrency: 'INR',
+        unitText: 'MONTH'
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <SEOHead 
-        title={`${property.property_type === 'pg' ? 'PG' : property.room_type ? property.room_type.toUpperCase() : property.property_type} in ${property.locality}`} 
-        description={`Rent this beautiful ${property.property_type} at ${property.locality} for ₹${property.rent}/mo. ${property.description ? property.description.substring(0, 100) + '...' : ''}`}
+        title={seoTitle} 
+        description={seoDescription}
+        jsonLd={jsonLd}
       />
       <Header />
       

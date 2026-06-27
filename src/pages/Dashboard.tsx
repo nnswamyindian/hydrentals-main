@@ -33,7 +33,7 @@ const Dashboard = () => {
     return <AdminDashboard />;
   }
 
-  if (roles.includes('owner')) {
+  if (roles.includes('owner') || roles.includes('subadmin')) {
     return <OwnerDashboard />;
   }
 

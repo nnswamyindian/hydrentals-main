@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MapPin, Crosshair, Loader2, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface MapLocationPickerProps {
   latitude: number | null;
@@ -61,6 +63,8 @@ const HYDERABAD_BOUNDS = {
 
 const MapLocationPicker = ({ latitude, longitude, onLocationChange, locality }: MapLocationPickerProps) => {
   const { toast } = useToast();
+  const { roles } = useAuth();
+  const isSubAdmin = roles?.includes('subadmin') || roles?.includes('admin');
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [spoofWarning, setSpoofWarning] = useState<string | null>(null);
@@ -205,9 +209,44 @@ const MapLocationPicker = ({ latitude, longitude, onLocationChange, locality }: 
           Property Location (GPS Verified)
         </Label>
         <p className="text-sm text-muted-foreground mb-3">
-          You must capture your location from the property site. Manual input is disabled to prevent fake listings.
+          {isSubAdmin 
+            ? "As a sub-admin/admin, you can manually enter coordinates or pick them below."
+            : "You must capture your location from the property site. Manual input is disabled to prevent fake listings."}
         </p>
       </div>
+
+      {isSubAdmin && (
+        <div className="space-y-4 p-4 border border-primary/20 bg-primary/5 rounded-lg">
+          <h4 className="font-semibold text-primary">Sub-Admin Manual Location Override</h4>
+          <p className="text-xs text-muted-foreground font-medium">
+            Type exact latitude and longitude for the property below.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="manual-lat">Latitude</Label>
+              <Input
+                id="manual-lat"
+                type="number"
+                step="any"
+                placeholder="e.g. 17.4435"
+                value={latitude || ''}
+                onChange={(e) => onLocationChange(Number(e.target.value), longitude || 0)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="manual-lng">Longitude</Label>
+              <Input
+                id="manual-lng"
+                type="number"
+                step="any"
+                placeholder="e.g. 78.3772"
+                value={longitude || ''}
+                onChange={(e) => onLocationChange(latitude || 0, Number(e.target.value))}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Anti-spoof notice */}
       <Card className="border-primary/20 bg-primary/5">

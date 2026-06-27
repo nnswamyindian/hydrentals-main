@@ -129,6 +129,35 @@ class SupabaseMock {
       localStorage.removeItem('supabase-auth-user');
       this.listeners.forEach(cb => cb('SIGNED_OUT', null));
       return { error: null };
+    },
+    resetPasswordForEmail: async function(email) {
+      const res = await fetch(getApiUrl('/api/auth/forgot-password'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!res.ok) return { data: null, error: { message: data.error } };
+      
+      // Store token so ResetPassword can get the session
+      localStorage.setItem('supabase-auth-token', data.token);
+      localStorage.setItem('supabase-auth-user', JSON.stringify(data.user));
+      
+      return { data: {}, error: null };
+    },
+    updateUser: async function({ password }) {
+      const token = localStorage.getItem('supabase-auth-token');
+      const res = await fetch(getApiUrl('/api/auth/reset-password'), {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ password })
+      });
+      const data = await res.json();
+      if (!res.ok) return { data: null, error: { message: data.error } };
+      return { data: { user: data.user }, error: null };
     }
   };
 

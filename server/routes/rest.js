@@ -25,6 +25,45 @@ router.post('/', async (req, res) => {
       table = 'users'; // Map alias used for real-time messaging
     }
 
+    const ALLOWED_SCHEMAS = {
+      users: ['id', 'email', 'password_hash', 'full_name', 'phone', 'role', 'is_verified', 'avatar_url', 'created_at'],
+      properties: ['id', 'owner_id', 'title', 'description', 'property_type', 'room_type', 'listing_type', 'rent', 'sale_price', 'deposit', 'maintenance', 'locality', 'address', 'city', 'pincode', 'latitude', 'longitude', 'furnished_status', 'amenities', 'tenant_preference', 'gender_preference', 'food_available', 'pets_allowed', 'available_from', 'images', 'is_verified', 'is_direct_owner', 'status', 'unavailable_dates', 'created_at'],
+      payments: ['id', 'user_id', 'property_id', 'amount', 'status', 'payment_type', 'payment_method', 'transaction_id', 'razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature', 'payment_link', 'paid_at', 'created_at'],
+      favorites: ['id', 'user_id', 'property_id', 'created_at'],
+      messages: ['id', 'sender_id', 'receiver_id', 'property_id', 'content', 'is_read', 'created_at'],
+      notifications: ['id', 'user_id', 'title', 'body', 'is_read', 'link', 'created_at'],
+      saved_searches: ['id', 'user_id', 'name', 'filters', 'created_at'],
+      visit_requests: ['id', 'property_id', 'tenant_id', 'owner_id', 'visit_date', 'visit_time', 'note', 'status', 'message', 'scheduled_visit', 'created_at'],
+      complaints: ['id', 'user_id', 'property_id', 'subject', 'description', 'status', 'created_at'],
+      reviews: ['id', 'user_id', 'property_id', 'rating', 'comment', 'created_at'],
+      property_views: ['id', 'property_id', 'session_id', 'viewed_at'],
+      property_reports: ['id', 'reporter_id', 'property_id', 'reason', 'description', 'created_at'],
+      community_badges: ['id', 'user_id', 'badge_name', 'badge_code', 'description', 'issued_at', 'earned_at'],
+      broker_complaints: ['id', 'user_id', 'complainant_name', 'complainant_email', 'complainant_phone', 'broker_name', 'broker_phone', 'property_reference', 'description', 'status', 'created_at']
+    };
+
+    if (!ALLOWED_SCHEMAS[table]) {
+      return res.status(400).json({ error: `Invalid table schema request: ${table}` });
+    }
+
+    const validCols = ALLOWED_SCHEMAS[table];
+
+    if (modifiers && Array.isArray(modifiers)) {
+      for (const mod of modifiers) {
+        if (mod.column && !validCols.includes(mod.column)) {
+          return res.status(400).json({ error: `Invalid query column parameter: ${mod.column}` });
+        }
+      }
+    }
+
+    if (payload) {
+      for (const col of Object.keys(payload)) {
+        if (!validCols.includes(col)) {
+          return res.status(400).json({ error: `Invalid payload data column: ${col}` });
+        }
+      }
+    }
+
     // Verify User Role via JWT Context
     let user = null;
     const authHeader = req.headers['authorization'];
@@ -259,14 +298,25 @@ router.post('/', async (req, res) => {
             return res.status(403).json({ error: 'Forbidden: You do not own this property.' });
           }
           
-          // Non-admins cannot alter status to approved/pending_payment/rejected directly
-          if (payload.status && payload.status !== 'pending') {
-            return res.status(403).json({ error: 'Forbidden: Owners cannot change property status directly.' });
+          // Non-admins cannot alter status to approved/pending_payment/rejected directly, but can mark as rented/sold/deleted/inactive
+          const allowedStatuses = ['pending', 'rented', 'sold', 'rented_out', 'sold_out'];
+          if (payload.status && !allowedStatuses.includes(payload.status)) {
+            return res.status(403).json({ error: 'Forbidden: Owners cannot change property status directly to this value.' });
           }
           
           // Non-admins cannot alter is_verified
           if (payload.is_verified !== undefined) {
             delete payload.is_verified;
+          }
+        }
+
+        // Reset payment status if property changes from approved to any inactive/rented/sold status
+        if (existingProperty.status === 'approved' && payload.status && payload.status !== 'approved') {
+          const ownerUser = db.prepare('SELECT role FROM users WHERE id = ?').get(existingProperty.owner_id);
+          const isOwnerSubAdmin = ownerUser && ownerUser.role === 'subadmin';
+          if (!isOwnerSubAdmin) {
+            db.prepare("UPDATE payments SET status = 'pending' WHERE property_id = ?").run(idMod.value);
+            console.log(`[REST Update] Reset payment status to pending for property ${idMod.value} (deactivated from approved)`);
           }
         }
       }
@@ -283,11 +333,16 @@ router.post('/', async (req, res) => {
       // 3. Intercept property approval by Admin -> change to pending_payment, create link
       if (table === 'properties' && payload.status === 'approved' && isAdmin) {
         if (oldProperties.length > 0 && (oldProperties[0].status === 'pending' || oldProperties[0].status === 'rejected')) {
-          payload.status = 'pending_payment';
-          
-          const propertyId = oldProperties[0].id;
-          const ownerId = oldProperties[0].owner_id;
-          const owner = db.prepare('SELECT email, full_name, phone FROM users WHERE id = ?').get(ownerId);
+          const propOwnerId = oldProperties[0].owner_id;
+          const ownerUser = db.prepare('SELECT role FROM users WHERE id = ?').get(propOwnerId);
+          if (ownerUser && ownerUser.role === 'subadmin') {
+            console.log(`[REST Update] Property approved for sub-admin owner. Bypassing payment.`);
+          } else {
+            payload.status = 'pending_payment';
+            
+            const propertyId = oldProperties[0].id;
+            const ownerId = oldProperties[0].owner_id;
+            const owner = db.prepare('SELECT email, full_name, phone FROM users WHERE id = ?').get(ownerId);
           
           let paymentLinkUrl = '';
           let razorpayOrderId = '';
@@ -370,6 +425,7 @@ router.post('/', async (req, res) => {
           }
         }
       }
+    }
 
       const keys = Object.keys(payload);
       const setArray = keys.map(k => `${k} = ?`).join(', ');
@@ -423,6 +479,23 @@ router.post('/', async (req, res) => {
     }
     
     else if (action === 'delete') {
+      const isAdmin = user && user.role === 'admin';
+      if (table === 'properties') {
+        const idMod = modifiers.find(m => m.type === 'eq' && m.column === 'id');
+        if (!idMod) {
+          return res.status(400).json({ error: 'Property ID filter missing for delete.' });
+        }
+        
+        const existingProperty = db.prepare('SELECT owner_id FROM properties WHERE id = ?').get(idMod.value);
+        if (!existingProperty) {
+          return res.status(404).json({ error: 'Property not found.' });
+        }
+        
+        if (!isAdmin && (!user || existingProperty.owner_id !== user.id)) {
+          return res.status(403).json({ error: 'Forbidden: You do not own this property.' });
+        }
+      }
+
       let queryStr = `DELETE FROM ${table} WHERE 1=1`;
       let params = [];
       modifiers.forEach(mod => {
