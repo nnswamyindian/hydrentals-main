@@ -84,9 +84,9 @@ const AdminProperties = () => {
 
       toast({ title: 'Property approved', description: 'Listing approved. Payment link sent to the owner.' });
       fetchProperties();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error approving property:', error);
-      toast({ title: 'Error', description: 'Failed to approve property.', variant: 'destructive' });
+      toast({ title: 'Error', description: error?.message || 'Failed to approve property.', variant: 'destructive' });
     }
   };
 

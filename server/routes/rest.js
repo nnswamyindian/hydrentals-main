@@ -342,7 +342,15 @@ router.post('/', async (req, res) => {
             
             const propertyId = oldProperties[0].id;
             const ownerId = oldProperties[0].owner_id;
-            const owner = db.prepare('SELECT email, full_name, phone FROM users WHERE id = ?').get(ownerId);
+            const owner = db.prepare('SELECT email, full_name, phone FROM users WHERE id = ?').get(ownerId) || {};
+            
+            let cleanPhone = '';
+            if (owner.phone) {
+              const digits = owner.phone.replace(/[^0-9+]/g, '');
+              if (digits.length >= 8 && digits.length <= 14) {
+                cleanPhone = digits;
+              }
+            }
           
           let paymentLinkUrl = '';
           let razorpayOrderId = '';
@@ -370,7 +378,7 @@ router.post('/', async (req, res) => {
               customer: {
                 name: owner.full_name || 'Property Owner',
                 email: owner.email,
-                contact: owner.phone || ''
+                contact: cleanPhone
               },
               notify: {
                 sms: false,
