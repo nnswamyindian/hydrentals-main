@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT DEFAULT 'tenant',
   is_verified BOOLEAN DEFAULT 0,
   avatar_url TEXT,
+  verification_token TEXT,
+  otp_expires_at INTEGER,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 `);

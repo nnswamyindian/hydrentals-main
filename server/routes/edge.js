@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -54,27 +55,20 @@ router.post('/chat', (req, res) => {
   }
 });
 
-// Polyfill Transport for Email (Replacing edge function 'send-email')
-router.post('/send-email', (req, res) => {
-  const { to, subject, body } = req.body;
-  
-  if (!to || !subject) return res.status(400).json({ error: 'Transport invalid: missing headers' });
-
-  // Trace logs into the node daemon emulating SMTP outbound drops
-  console.log(`\n\n=== E-MAIL DISPATCH EMULATION ===\nTO: ${to}\nSUBJECT: ${subject}\nBODY:\n${body}\n=================================\n`);
-  
-  res.json({ success: true, message: 'Email dispatched via local simulation pipeline.' });
-});
-
-// Property Messaging Notification Generator (Replacing edge 'notify-message')
-router.post('/notify-message', (req, res) => {
+// Property Messaging Notification Generator — requires auth
+router.post('/notify-message', authenticateToken, (req, res) => {
   const { user_id, message_content } = req.body;
-  
+
+  // Only allow a user to create a notification for themselves or if admin
+  if (!user_id || (req.user.id !== user_id && req.user.role !== 'admin')) {
+    return res.status(403).json({ error: 'Forbidden: cannot create notifications for other users.' });
+  }
+
   try {
     const id = crypto.randomUUID();
     db.prepare('INSERT INTO notifications (id, user_id, title, body, link) VALUES (?, ?, ?, ?, ?)')
       .run(id, user_id, 'New Message Alert', message_content || 'You have received a new message.', '/messages');
-      
+
     res.json({ success: true, notification_id: id });
   } catch (err) {
     console.error('Notify route SQLite err:', err.message);

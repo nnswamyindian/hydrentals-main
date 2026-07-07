@@ -72,10 +72,14 @@ router.post('/', async (req, res) => {
       try { user = jwt.verify(token, JWT_SECRET); } catch (e) { }
     }
 
-    // Security Gate check
+    // Auth gate: all mutating actions require a valid token
+    if (['insert', 'update', 'delete'].includes(action) && !user) {
+      return res.status(401).json({ error: 'Unauthorized: authentication required for this action.' });
+    }
+
+    // Security Gate: force properties to start as pending
     if (action === 'insert' && table === 'properties' && payload) {
       payload.status = 'pending';
-      if (!user) return res.status(401).json({ error: 'Unauthorized to insert property' });
     }
 
     if (action === 'select') {

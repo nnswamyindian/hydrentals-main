@@ -8,14 +8,57 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mail, Lock, User, ArrowRight, Building2, Phone, KeyRound } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Building2, Phone, KeyRound, CheckCircle2, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { getApiUrl } from '@/integrations/supabase/client';
+import { getApiUrl, supabase } from '@/integrations/supabase/client';
 import logo from '@/assets/logo.svg';
 import SEOHead from '@/components/seo/SEOHead';
 
 type Role = 'tenant' | 'owner';
+
+/** Password strength rules */
+const passwordRules = [
+  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+  { label: 'An uppercase letter (A-Z)', test: (p: string) => /[A-Z]/.test(p) },
+  { label: 'A lowercase letter (a-z)', test: (p: string) => /[a-z]/.test(p) },
+  { label: 'A number (0-9)', test: (p: string) => /[0-9]/.test(p) },
+];
+
+const PasswordStrengthIndicator = ({ password }: { password: string }) => {
+  if (!password) return null;
+  const passed = passwordRules.filter(r => r.test(password)).length;
+  const colors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500'];
+  return (
+    <div className="space-y-1.5 mt-2">
+      <div className="flex gap-1">
+        {passwordRules.map((_, i) => (
+          <div
+            key={i}
+            className={`h-1 flex-1 rounded-full transition-all ${
+              i < passed ? colors[passed - 1] : 'bg-muted'
+            }`}
+          />
+        ))}
+      </div>
+      <ul className="space-y-0.5">
+        {passwordRules.map(rule => {
+          const ok = rule.test(password);
+          return (
+            <li key={rule.label} className={`flex items-center gap-1 text-xs ${
+              ok ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
+            }`}>
+              {ok
+                ? <CheckCircle2 className="w-3 h-3 shrink-0" />
+                : <XCircle className="w-3 h-3 shrink-0" />}
+              {rule.label}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+};
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -75,9 +118,11 @@ const Auth = () => {
 
       localStorage.setItem('supabase-auth-token', data.token);
       localStorage.setItem('supabase-auth-user', JSON.stringify(data.user));
+      // Sync React auth context without a full page reload
+      (supabase.auth as any).syncFromStorage();
 
       toast({ title: 'Account Verified!', description: 'Welcome to HydRent!' });
-      window.location.href = '/dashboard';
+      navigate('/dashboard');
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
       setIsLoading(false);
@@ -147,13 +192,15 @@ const Auth = () => {
 
       localStorage.setItem('supabase-auth-token', data.token);
       localStorage.setItem('supabase-auth-user', JSON.stringify(data.user));
+      // Sync React auth context without a full page reload
+      (supabase.auth as any).syncFromStorage();
 
       toast({
         title: 'Welcome back!',
         description: 'You have successfully logged in.',
       });
       
-      window.location.href = '/dashboard';
+      navigate('/dashboard');
     } catch (err: any) {
       toast({
         title: 'Verification failed',
@@ -180,6 +227,7 @@ const Auth = () => {
       return;
     }
 
+    // signIn accepts email or phone; the server resolves both
     const { error } = await signIn(loginIdentifier, loginPassword);
 
     if (error) {
@@ -218,6 +266,17 @@ const Auth = () => {
       toast({
         title: 'Validation Error',
         description: "Passwords do not match.",
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Enforce password strength client-side before hitting the server
+    const strengthPassed = passwordRules.every(r => r.test(signupPassword));
+    if (!strengthPassed) {
+      toast({
+        title: 'Weak Password',
+        description: 'Password must be at least 8 characters with an uppercase letter, a lowercase letter, and a number.',
         variant: 'destructive',
       });
       return;
@@ -637,13 +696,14 @@ const Auth = () => {
                         <Input
                           id="signup-password"
                           type="password"
-                          placeholder="At least 6 characters"
+                          placeholder="Min 8 chars, uppercase, number"
                           value={signupPassword}
                           onChange={(e) => setSignupPassword(e.target.value)}
                           className="pl-10"
                           required
                         />
                       </div>
+                      <PasswordStrengthIndicator password={signupPassword} />
                     </div>
 
                     <div className="space-y-2">

@@ -25,20 +25,14 @@ const AdminLogin = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    const checkRole = async () => {
-      if (user) {
-        const { data: rolesData } = await db
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id);
-
-        const roles = (rolesData as any[])?.map((r: any) => r.role) || [];
-        if (roles.includes('admin')) {
-          navigate('/admin/dashboard');
-        }
+    if (user) {
+      // Role is embedded in JWT — read directly from auth context
+      const storedUser = localStorage.getItem('supabase-auth-user');
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        if (parsed.role === 'admin') navigate('/admin/dashboard');
       }
-    };
-    checkRole();
+    }
   }, [user, navigate]);
 
   const handleAdminLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -79,26 +73,8 @@ const AdminLogin = () => {
       return;
     }
 
-    // Verify admin role
-    const { data: { user } } = await db.auth.getUser();
-    if (user) {
-      const { data: rolesData } = await db
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id);
-
-      const roles = (rolesData as any[])?.map((r: any) => r.role) || [];
-      if (!roles.includes('admin')) {
-        await db.auth.signOut();
-        toast({
-          title: 'Unauthorized Access',
-          description: 'You do not have administrative privileges.',
-          variant: 'destructive',
-        });
-        setIsLoading(false);
-        return;
-      }
-    }
+    // Verify admin role using JWT claim
+    if (!verifyAdminRole()) return;
 
     toast({
       title: 'Welcome Admin!',
@@ -106,6 +82,27 @@ const AdminLogin = () => {
     });
     navigate('/admin/dashboard');
     setIsLoading(false);
+  };
+
+  // This function replaces the old user_roles table lookup with a direct JWT role check.
+  // The JWT token is issued by our auth server with the user's role embedded.
+  const verifyAdminRole = () => {
+    const storedUser = localStorage.getItem('supabase-auth-user');
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser);
+      if (parsed.role !== 'admin') {
+        // Not an admin — sign out
+        (supabase.auth as any).signOut();
+        toast({
+          title: 'Unauthorized Access',
+          description: 'You do not have administrative privileges.',
+          variant: 'destructive',
+        });
+        setIsLoading(false);
+        return false;
+      }
+    }
+    return true;
   };
 
   return (

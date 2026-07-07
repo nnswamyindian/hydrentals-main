@@ -39,6 +39,7 @@ import Chatbot from "./components/chat/Chatbot";
 import PaymentPage from "./pages/PaymentPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import MobileBottomNav from "./components/layout/MobileBottomNav";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -63,6 +64,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/properties" element={<Properties />} />
@@ -189,6 +191,7 @@ const App = () => (
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </ErrorBoundary>
           <MobileBottomNav />
           <Chatbot />
         </BrowserRouter>

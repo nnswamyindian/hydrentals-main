@@ -28,13 +28,51 @@ const paymentsRoutes = require('./routes/payments');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
-// Protect API with security headers
+// ─── Startup Validation ────────────────────────────────────────────────────
+const REQUIRED_ENV = ['JWT_SECRET', 'SMTP_USER', 'SMTP_PASS', 'RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET'];
+const missingVars = REQUIRED_ENV.filter(v => !process.env[v]);
+if (missingVars.length > 0) {
+  console.error(`\n❌ [FATAL] Missing required environment variables: ${missingVars.join(', ')}`);
+  console.error('   Add them to server/.env and restart.\n');
+  process.exit(1);
+}
+
+// ─── Security Headers ──────────────────────────────────────────────────────
 app.use(helmet({
-  crossOriginResourcePolicy: false, // Allow serving local uploaded image assets
-  contentSecurityPolicy: false,     // Allow frontend integration during dev
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow /uploads images from frontend
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://checkout.razorpay.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+      connectSrc: ["'self'", 'https://api.razorpay.com'],
+      frameSrc: ['https://api.razorpay.com'],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+    },
+  },
 }));
 
-app.use(cors());
+// ─── CORS ──────────────────────────────────────────────────────────────────
+// Set ALLOWED_ORIGINS in server/.env as comma-separated list of allowed origins.
+// Example: ALLOWED_ORIGINS=https://hydrentals.com,https://www.hydrentals.com
+const cors = require('cors');
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : ['http://localhost:8080', 'http://localhost:5173', 'http://localhost:3000'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Razorpay webhooks)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.warn(`[CORS] Blocked request from: ${origin}`);
+    callback(new Error(`CORS policy violation: origin ${origin} not allowed.`));
+  },
+  credentials: true,
+}));
 
 // Global API rate limiting
 const globalLimiter = rateLimit({
@@ -54,6 +92,10 @@ app.use('/api', globalLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/signup', authLimiter);
 app.use('/api/auth/send-login-otp', authLimiter);
+app.use('/api/auth/verify-otp', authLimiter);
+app.use('/api/auth/login-with-otp', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/reset-password-otp', authLimiter);
 
 // Mount Razorpay webhook receiver before global JSON body parsing
 app.use('/api/razorpay', razorpayRoutes);

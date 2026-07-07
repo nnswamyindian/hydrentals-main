@@ -132,6 +132,10 @@ router.post('/messages', authenticateToken, (req, res) => {
     return res.status(400).json({ error: 'Receiver ID and content are required.' });
   }
 
+  if (content.trim().length > 5000) {
+    return res.status(400).json({ error: 'Message is too long. Maximum 5,000 characters allowed.' });
+  }
+
   try {
     const newId = crypto.randomUUID();
     const cleanContent = content.trim();

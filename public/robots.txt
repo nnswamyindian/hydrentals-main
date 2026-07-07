@@ -1,16 +1,30 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Youtubebot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+Allow: /properties
+Allow: /property/
+Allow: /map
+Allow: /rent-calculator
+Allow: /compare
+Allow: /contact
+Allow: /rules
+Allow: /privacy
+Allow: /terms
+Allow: /auth
+Allow: /forgot-password
 
-Sitemap: https://hydrentals.lovable.app/sitemap.xml
+# Block admin and user-specific pages from indexing
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /messages
+Disallow: /notifications
+Disallow: /my-properties
+Disallow: /add-property
+Disallow: /list-property
+Disallow: /payment/
+Disallow: /favorites
+
+# Block API endpoints
+Disallow: /api/
+
+Sitemap: https://hydrentals.com/sitemap.xml

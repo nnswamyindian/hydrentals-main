@@ -9,9 +9,8 @@ interface Profile {
   full_name: string | null;
   phone: string | null;
   avatar_url: string | null;
-  aadhaar_number: string | null;
   is_verified: boolean;
-  verification_status: string;
+  role: string | null;
 }
 
 interface AuthContextType {
@@ -20,8 +19,10 @@ interface AuthContextType {
   profile: Profile | null;
   roles: AppRole[];
   isLoading: boolean;
+  /** email or phone number — server resolves both */
   signUp: (email: string, password: string, fullName: string, phone: string, role: AppRole) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  /** identifier can be email or phone number */
+  signIn: (identifier: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   hasRole: (role: AppRole) => boolean;
 }
@@ -127,9 +128,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error: null, data };
   };
 
-  const signIn = async (email: string, password: string): Promise<{ error: Error | null }> => {
+  const signIn = async (identifier: string, password: string): Promise<{ error: Error | null }> => {
+    // signInWithPassword passes identifier as the 'email' field;
+    // the SupabaseMock routes it to /api/auth/login which resolves both email and phone.
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: identifier,
       password,
     });
 

@@ -8,7 +8,7 @@ const { sendPropertySubmissionEmails } = require('../emailService');
 
 const router = express.Router();
 
-// Configure multer for local file storage
+// Configure multer: max 5 MB per image, JPEG/PNG/WebP only
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '../uploads'));
@@ -17,7 +17,19 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
   }
 });
-const upload = multer({ storage });
+
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB per file
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      return cb(new Error('Only JPEG, PNG, and WebP images are allowed.'));
+    }
+    cb(null, true);
+  },
+});
 
 router.get('/', (req, res) => {
   try {
@@ -126,8 +138,8 @@ router.get('/', (req, res) => {
 router.post('/', authenticateToken, upload.array('images', 10), (req, res) => {
   try {
     const { role, id: owner_id } = req.user;
-    if (role !== 'owner' && role !== 'admin') {
-      return res.status(403).json({ error: 'Only owners or admins can list properties' });
+    if (role !== 'owner' && role !== 'admin' && role !== 'subadmin') {
+      return res.status(403).json({ error: 'Only owners, admins, or subadmins can list properties' });
     }
 
     const {
@@ -139,7 +151,7 @@ router.post('/', authenticateToken, upload.array('images', 10), (req, res) => {
     // Strict PDF Boundary Validation Gates
     if (!title || title.length < 10 || title.length > 200) return res.status(400).json({ error: 'Title violates length bounds (10-200 chars)' });
     if (description && description.length > 5000) return res.status(400).json({ error: 'Maximum description threshold (5,000) exceeded' });
-    if (!pincode || !/^\\d{6}$/.test(pincode)) return res.status(400).json({ error: 'Invalid Pincode geography. Exactly 6 Indian digits required.' });
+    if (!pincode || !/^\d{6}$/.test(pincode)) return res.status(400).json({ error: 'Invalid Pincode geography. Exactly 6 Indian digits required.' });
     if (rent && (Number(rent) < 1 || Number(rent) > 10000000)) return res.status(400).json({ error: 'Gross rental limits (1 to 10M) violated.' });
     if (deposit && (Number(deposit) < 0 || Number(deposit) > 50000000)) return res.status(400).json({ error: 'Deposit boundaries (up to 50M) exceeded.' });
     if (listingType === 'sale' && (!salePrice || Number(salePrice) < 1 || Number(salePrice) > 500000000)) return res.status(400).json({ error: 'Sale configurations demand valid localized price caps (<50Cr).' });

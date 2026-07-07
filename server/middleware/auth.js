@@ -1,6 +1,14 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'hydrentals-super-secret-key-1234!';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error(
+    '[FATAL] JWT_SECRET environment variable is not set. ' +
+    'The server cannot start without a secure JWT secret. ' +
+    'Add JWT_SECRET to server/.env and restart.'
+  );
+}
 
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];

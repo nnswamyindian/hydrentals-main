@@ -266,41 +266,35 @@ const Settings = () => {
                 <CardTitle className="flex items-center gap-2">
                   <Bell className="w-5 h-5" />
                   Notifications
+                  <span className="ml-auto text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-normal">
+                    Coming Soon
+                  </span>
                 </CardTitle>
                 <CardDescription>
-                  Choose what notifications you receive
+                  Notification preferences will be configurable in an upcoming update.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 opacity-50 pointer-events-none select-none">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Email Notifications</p>
                     <p className="text-sm text-muted-foreground">Receive updates via email</p>
                   </div>
-                  <Switch
-                    checked={notifications.email}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, email: checked })}
-                  />
+                  <Switch checked={notifications.email} disabled />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">New Messages</p>
                     <p className="text-sm text-muted-foreground">Get notified of new messages</p>
                   </div>
-                  <Switch
-                    checked={notifications.messages}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, messages: checked })}
-                  />
+                  <Switch checked={notifications.messages} disabled />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">Property Updates</p>
                     <p className="text-sm text-muted-foreground">Updates on saved properties</p>
                   </div>
-                  <Switch
-                    checked={notifications.propertyUpdates}
-                    onCheckedChange={(checked) => setNotifications({ ...notifications, propertyUpdates: checked })}
-                  />
+                  <Switch checked={notifications.propertyUpdates} disabled />
                 </div>
               </CardContent>
             </Card>

@@ -3,6 +3,7 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 const { sendBrokerReportConfirmation } = require('../emailService');
 
 const router = express.Router();
@@ -97,9 +98,8 @@ router.post('/report-broker', async (req, res) => {
   }
 });
 
-// PUT /api/contact/report-broker/:id/status
-// Updates broker complaint status and sends notification email
-router.put('/report-broker/:id/status', async (req, res) => {
+// PUT /api/contact/report-broker/:id/status  (admin only)
+router.put('/report-broker/:id/status', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;

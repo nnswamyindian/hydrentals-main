@@ -35,3 +35,29 @@ server/database.sqlite*
 # Uploads directory
 server/uploads/
 
+# Server dev/test/audit scripts (not needed in production)
+server/audit_db.js
+server/audit_out.txt
+server/check_badges.js
+server/check_tables.js
+server/final_audit.js
+server/fix_badges.js
+server/fix_schema.js
+server/make_admin.js
+server/read_msgs.js
+server/test_api.js
+server/test_array.js
+server/test_broker_complaint.js
+server/test_contact_api.js
+server/test_live_verify.js
+server/verify_db.js
+server/alter_otp.js
+server/alter_reports.js
+server/create_broker_complaints.js
+server/migrate_tenant_pref.js
+# Malformed file (syntax error in name)
+"server/console.log(b))})"
+
+# PM2 logs
+.pm2/
+pm2.log

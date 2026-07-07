@@ -130,6 +130,10 @@ class SupabaseMock {
       this.listeners.forEach(cb => cb('SIGNED_OUT', null));
       return { error: null };
     },
+    /**
+     * Sends a 6-digit OTP to the user's email for password reset.
+     * Does NOT store anything in localStorage — the reset is OTP-based.
+     */
     resetPasswordForEmail: async function(email) {
       const res = await fetch(getApiUrl('/api/auth/forgot-password'), {
         method: 'POST',
@@ -138,26 +142,39 @@ class SupabaseMock {
       });
       const data = await res.json();
       if (!res.ok) return { data: null, error: { message: data.error } };
-      
-      // Store token so ResetPassword can get the session
-      localStorage.setItem('supabase-auth-token', data.token);
-      localStorage.setItem('supabase-auth-user', JSON.stringify(data.user));
-      
-      return { data: {}, error: null };
+      // Return dev_otp only available in development mode
+      return { data: { dev_otp: data.dev_otp || null }, error: null };
     },
-    updateUser: async function({ password }) {
-      const token = localStorage.getItem('supabase-auth-token');
-      const res = await fetch(getApiUrl('/api/auth/reset-password'), {
+    /**
+     * Verifies the OTP + sets a new password. Auto-logs the user in on success.
+     */
+    resetPasswordWithOtp: async function(email, otp, password) {
+      const res = await fetch(getApiUrl('/api/auth/reset-password-otp'), {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ password })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp, password })
       });
       const data = await res.json();
       if (!res.ok) return { data: null, error: { message: data.error } };
+      if (data.token) {
+        localStorage.setItem('supabase-auth-token', data.token);
+        localStorage.setItem('supabase-auth-user', JSON.stringify(data.user));
+        const session = { user: data.user, access_token: data.token };
+        this.listeners.forEach(cb => cb('SIGNED_IN', session));
+      }
       return { data: { user: data.user }, error: null };
+    },
+    /**
+     * Syncs auth state from localStorage and fires SIGNED_IN listeners.
+     * Used by OTP login paths that write directly to localStorage.
+     */
+    syncFromStorage: function() {
+      const token = localStorage.getItem('supabase-auth-token');
+      const userStr = localStorage.getItem('supabase-auth-user');
+      if (token && userStr) {
+        const session = { user: JSON.parse(userStr), access_token: token };
+        this.listeners.forEach(cb => cb('SIGNED_IN', session));
+      }
     }
   };
 
