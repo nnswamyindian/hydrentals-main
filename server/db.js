@@ -1,31 +1,26 @@
-const Database = require('better-sqlite3');
+const mysql = require('mysql2/promise');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const dbPath = path.join(__dirname, 'database.sqlite');
-const db = new Database(dbPath, { verbose: console.log });
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'hydrentals',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  charset: 'utf8mb4'
+});
 
-// Enable Write-Ahead Logging for better performance
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+// Create tables automatically if needed (similar to sqlite setup script, but here just testing connection)
+pool.getConnection()
+  .then(connection => {
+    console.log('✅ Connected to MySQL database');
+    connection.release();
+  })
+  .catch(err => {
+    console.error('❌ Error connecting to MySQL:', err.message);
+  });
 
-// Run SQLite migrations automatically on start
-const columnsToAdd = [
-  { name: 'payment_method', type: 'TEXT' },
-  { name: 'transaction_id', type: 'TEXT' },
-  { name: 'razorpay_order_id', type: 'TEXT' },
-  { name: 'razorpay_payment_id', type: 'TEXT' },
-  { name: 'razorpay_signature', type: 'TEXT' },
-  { name: 'payment_link', type: 'TEXT' },
-  { name: 'paid_at', type: 'DATETIME' }
-];
-
-for (const col of columnsToAdd) {
-  try {
-    db.prepare(`ALTER TABLE payments ADD COLUMN ${col.name} ${col.type}`).run();
-    console.log(`Added column ${col.name} to payments table`);
-  } catch (e) {
-    // Column already exists, ignore error
-  }
-}
-
-module.exports = db;
+module.exports = pool;

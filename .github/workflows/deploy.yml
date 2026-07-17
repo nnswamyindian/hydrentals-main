@@ -1,0 +1,44 @@
+name: Deploy to Ubuntu VPS
+
+on:
+  push:
+    branches:
+      - main
+      - master # Deploy when pushed to main or master branch
+
+jobs:
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Connect and Deploy to VPS via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: 22
+        script: |
+          # 🛑 IMPORTANT: Change this to the exact folder path of your project on the Ubuntu server!
+          cd /var/www/hydrentals-main
+          
+          echo "⏬ Pulling latest code from GitHub..."
+          git fetch --all
+          git reset --hard origin/main
+          
+          echo "📦 Installing backend dependencies..."
+          cd server
+          npm install
+          
+          echo "🔄 Restarting application with PM2..."
+          # If PM2 isn't running it yet, this will start it, else it will restart it
+          pm2 start index.js --name "hydrentals" || pm2 restart "hydrentals"
+          
+          # Save PM2 state so it turns on automatically if the VPS server reboots
+          pm2 save
+          
+          echo "✅ Deployment Successful!"

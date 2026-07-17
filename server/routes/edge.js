@@ -6,7 +6,7 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Simplistic AI Chatbot Search via SQLite
-router.post('/chat', (req, res) => {
+router.post('/chat', async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: 'Message requirement missing' });
   
@@ -56,7 +56,7 @@ router.post('/chat', (req, res) => {
 });
 
 // Property Messaging Notification Generator — requires auth
-router.post('/notify-message', authenticateToken, (req, res) => {
+router.post('/notify-message', authenticateToken, async (req, res) => {
   const { user_id, message_content } = req.body;
 
   // Only allow a user to create a notification for themselves or if admin

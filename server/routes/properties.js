@@ -31,17 +31,17 @@ const upload = multer({
   },
 });
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const { 
-      status = 'approved', 
-      listingType, 
-      locality, 
-      types, 
-      furnished, 
-      gender, 
-      pets, 
-      food, 
+    const {
+      status = 'approved',
+      listingType,
+      locality,
+      types,
+      furnished,
+      gender,
+      pets,
+      food,
       search,
       minRent,
       maxRent,
@@ -49,60 +49,63 @@ router.get('/', (req, res) => {
       limit = 20
     } = req.query;
 
-    let query = `
+    // Convert object params to array for MySQL OR reformat to parameterized
+    // Since original used named parameters like @status which better-sqlite3 supports but mysql2 prepare might not support natively without namedPlaceholders=true config (which we didn't add), 
+    // wait I should rewrite it to avoid named params if possible, but actually we can just pass them as an object if we configured namedPlaceholders. But the current query uses @status. Let's rewrite it quickly with ? placeholders.
+    let query2 = `
       SELECT p.*,
              u.full_name as owner_name, 
              u.phone as owner_phone,
              u.is_verified as owner_verified
       FROM properties p
       JOIN users u ON p.owner_id = u.id
-      WHERE p.status = @status
+      WHERE p.status = ?
     `;
-    const params = { status };
-    
+    const paramsList = [status];
+
     if (listingType && listingType !== 'all') {
-      query += ' AND p.listing_type = @listingType';
-      params.listingType = listingType;
+      query2 += ' AND p.listing_type = ?';
+      paramsList.push(listingType);
     }
     if (locality) {
-      query += ' AND p.locality = @locality';
-      params.locality = locality;
+      query2 += ' AND p.locality = ?';
+      paramsList.push(locality);
     }
     if (types) {
       const typesArr = types.split(',');
-      query += ` AND p.property_type IN (${typesArr.map(t => "'" + t.replace(/'/g, "''") + "'").join(',')})`;
+      query2 += ` AND p.property_type IN (${typesArr.map(() => '?').join(',')})`;
+      paramsList.push(...typesArr);
     }
     if (furnished) {
       const furnArr = furnished.split(',');
-      query += ` AND p.furnished_status IN (${furnArr.map(f => "'" + f.replace(/'/g, "''") + "'").join(',')})`;
+      query2 += ` AND p.furnished_status IN (${furnArr.map(() => '?').join(',')})`;
+      paramsList.push(...furnArr);
     }
     if (gender && gender !== 'any') {
-      query += " AND p.gender_preference IN (@gender, 'any')";
-      params.gender = gender;
+      query2 += " AND p.gender_preference IN (?, 'any')";
+      paramsList.push(gender);
     }
-    if (pets === 'true') query += ' AND p.pets_allowed = 1';
-    if (food === 'true') query += ' AND p.food_available = 1';
-    
+    if (pets === 'true') query2 += ' AND p.pets_allowed = 1';
+    if (food === 'true') query2 += ' AND p.food_available = 1';
+
     if (search) {
-      query += ' AND (p.title LIKE @search OR p.locality LIKE @search OR p.description LIKE @search)';
-      params.search = `%${search}%`;
+      query2 += ' AND (p.title LIKE ? OR p.locality LIKE ? OR p.description LIKE ?)';
+      paramsList.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
     if (minRent) {
-      query += ' AND p.rent >= @minRent';
-      params.minRent = Number(minRent);
+      query2 += ' AND p.rent >= ?';
+      paramsList.push(Number(minRent));
     }
     if (maxRent) {
-      query += ' AND p.rent <= @maxRent';
-      params.maxRent = Number(maxRent);
+      query2 += ' AND p.rent <= ?';
+      paramsList.push(Number(maxRent));
     }
 
-    query += ' ORDER BY p.created_at DESC LIMIT @limit OFFSET @offset';
-    params.limit = Number(limit);
-    params.offset = Number(page) * Number(limit);
+    query2 += ' ORDER BY p.created_at DESC LIMIT ? OFFSET ?';
+    paramsList.push(Number(limit), Number(page) * Number(limit));
 
-    const stmt = db.prepare(query);
-    const rawProperties = stmt.all(params);
+    const [rawProperties] = await db.execute(query2, paramsList);
 
     // Parse JSON fields
     const properties = rawProperties.map(p => ({
@@ -135,7 +138,7 @@ router.get('/', (req, res) => {
 });
 
 // Create property natively enforcing PDF-spec Data Boundaries
-router.post('/', authenticateToken, upload.array('images', 10), (req, res) => {
+router.post('/', authenticateToken, upload.array('images', 10), async (req, res) => {
   try {
     const { role, id: owner_id } = req.user;
     if (role !== 'owner' && role !== 'admin' && role !== 'subadmin') {
@@ -144,7 +147,7 @@ router.post('/', authenticateToken, upload.array('images', 10), (req, res) => {
 
     const {
       title, description, listingType, propertyType, roomType, rent, deposit, maintenance,
-      salePrice, locality, address, pincode, furnishedStatus, genderPreference, 
+      salePrice, locality, address, pincode, furnishedStatus, genderPreference,
       availableFrom, latitude, longitude, isDirectOwner
     } = req.body;
 
@@ -159,8 +162,8 @@ router.post('/', authenticateToken, upload.array('images', 10), (req, res) => {
     const amenities = req.body.amenities || '[]';
     try {
       if (JSON.parse(amenities).length > 20) return res.status(400).json({ error: 'Exceeded max allowance of 20 categorized amenities' });
-    } catch(e) {}
-    
+    } catch (e) { }
+
     const unavailableDates = req.body.unavailableDates || '[]';
     const foodAvailable = req.body.foodAvailable === 'true' ? 1 : 0;
     const petsAllowed = req.body.petsAllowed === 'true' ? 1 : 0;
@@ -169,51 +172,50 @@ router.post('/', authenticateToken, upload.array('images', 10), (req, res) => {
     const id = crypto.randomUUID();
     const images = req.files ? req.files.map(f => `/uploads/${f.filename}`) : [];
 
-    const insert = db.prepare(`
+    await db.execute(`
       INSERT INTO properties (
         id, owner_id, title, description, property_type, room_type, listing_type,
         rent, sale_price, deposit, maintenance, locality, address, pincode,
         latitude, longitude, furnished_status, amenities, gender_preference,
         food_available, pets_allowed, available_from, images, is_direct_owner, status
       ) VALUES (
-        @id, @owner_id, @title, @description, @propertyType, @roomType, @listingType,
-        @rent, @salePrice, @deposit, @maintenance, @locality, @address, @pincode,
-        @latitude, @longitude, @furnishedStatus, @amenities, @genderPreference,
-        @foodAvailable, @petsAllowed, @availableFrom, @images, @isDirectOwner, 'pending'
+        ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, 'pending'
       )
-    `);
-
-    insert.run({
+    `, [
       id, owner_id, title, description, propertyType, roomType, listingType,
-      rent: rent ? Number(rent) : null,
-      salePrice: salePrice ? Number(salePrice) : null,
-      deposit: deposit ? Number(deposit) : null,
-      maintenance: maintenance ? Number(maintenance) : null,
+      rent ? Number(rent) : null,
+      salePrice ? Number(salePrice) : null,
+      deposit ? Number(deposit) : null,
+      maintenance ? Number(maintenance) : null,
       locality, address, pincode,
-      latitude: latitude ? Number(latitude) : null,
-      longitude: longitude ? Number(longitude) : null,
+      latitude ? Number(latitude) : null,
+      longitude ? Number(longitude) : null,
       furnishedStatus, amenities, genderPreference,
       foodAvailable, petsAllowed, availableFrom,
-      images: JSON.stringify(images),
-      isDirectOwner: isDirectOwnerNum
-    });
+      JSON.stringify(images),
+      isDirectOwnerNum
+    ]);
 
     // Create pending payment log
     const paymentId = crypto.randomUUID();
-    db.prepare('INSERT INTO payments (id, user_id, property_id, amount, status, payment_type) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(paymentId, owner_id, id, 500, 'pending', 'listing_fee');
+    await db.execute('INSERT INTO payments (id, user_id, property_id, amount, status, payment_type) VALUES (?, ?, ?, ?, ?, ?)',
+      [paymentId, owner_id, id, 500, 'pending', 'listing_fee']);
 
     // Send email notifications to owner and admin asynchronously
     try {
-      const owner = db.prepare('SELECT email, full_name FROM users WHERE id = ?').get(owner_id);
+      const [owner_rows] = await db.execute('SELECT email, full_name FROM users WHERE id = ?', [owner_id]);
+      const owner = owner_rows[0];
       if (owner) {
         // Fetch admin emails
-        const admins = db.prepare("SELECT email FROM users WHERE role = 'admin'").all();
+        const [admins] = await db.execute("SELECT email FROM users WHERE role = 'admin'");
         const adminEmails = admins.map(a => a.email).filter(Boolean);
         if (adminEmails.length === 0) {
           adminEmails.push('admin@hydrentals.com'); // default fallback
         }
-        
+
         // Asynchronously dispatch emails
         sendPropertySubmissionEmails(owner.email, owner.full_name || 'Property Owner', title, id, adminEmails);
       }
@@ -229,12 +231,13 @@ router.post('/', authenticateToken, upload.array('images', 10), (req, res) => {
 });
 
 // GET /:id/payment-details - Fetch payment info for checkout screen
-router.get('/:id/payment-details', authenticateToken, (req, res) => {
+router.get('/:id/payment-details', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { id: userId, role } = req.user;
 
   try {
-    const property = db.prepare('SELECT id, title, rent, owner_id, locality FROM properties WHERE id = ?').get(id);
+    const [property_rows] = await db.execute('SELECT id, title, rent, owner_id, locality FROM properties WHERE id = ?', [id]);
+    const property = property_rows[0];
     if (!property) return res.status(404).json({ error: 'Property not found' });
 
     // Restrict access to the property owner or administrators
@@ -242,10 +245,12 @@ router.get('/:id/payment-details', authenticateToken, (req, res) => {
       return res.status(403).json({ error: 'Forbidden: Access denied to property payment details' });
     }
 
-    const payment = db.prepare('SELECT id, amount, status, payment_link, razorpay_order_id FROM payments WHERE property_id = ?').get(id);
+    const [payment_rows] = await db.execute('SELECT id, amount, status, payment_link, razorpay_order_id FROM payments WHERE property_id = ?', [id]);
+    const payment = payment_rows[0];
     if (!payment) return res.status(404).json({ error: 'Payment record not found for this property' });
 
-    const owner = db.prepare('SELECT email, full_name, phone FROM users WHERE id = ?').get(property.owner_id);
+    const [owner_rows] = await db.execute('SELECT email, full_name, phone FROM users WHERE id = ?', [property.owner_id]);
+    const owner = owner_rows[0];
     if (!owner) return res.status(404).json({ error: 'Property owner account not found' });
 
     res.json({
@@ -265,48 +270,53 @@ router.get('/:id/payment-details', authenticateToken, (req, res) => {
 });
 
 // POST /:id/manual-verify-payment - Admin override to manually verify listing payment
-router.post('/:id/manual-verify-payment', authenticateToken, requireRole('admin'), (req, res) => {
+router.post('/:id/manual-verify-payment', authenticateToken, requireRole('admin'), async (req, res) => {
   const { id } = req.params;
 
   try {
-    const property = db.prepare('SELECT title, owner_id FROM properties WHERE id = ?').get(id);
+    const [property_rows] = await db.execute('SELECT title, owner_id FROM properties WHERE id = ?', [id]);
+    const property = property_rows[0];
     if (!property) return res.status(404).json({ error: 'Property not found' });
 
     let success = false;
-    db.transaction(() => {
+    try {
       // 1. Mark payment as completed
-      db.prepare(`
+      await db.execute(`
         UPDATE payments 
         SET status = 'completed', 
             payment_method = 'manual_admin', 
             razorpay_payment_id = ?, 
             paid_at = CURRENT_TIMESTAMP 
         WHERE property_id = ?
-      `).run('manual_' + crypto.randomUUID().substring(0, 8), id);
+      `, ['manual_' + crypto.randomUUID().substring(0, 8), id]);
 
       // 2. Approve property listing
-      db.prepare("UPDATE properties SET status = 'approved', is_verified = 1 WHERE id = ?").run(id);
+      await db.execute("UPDATE properties SET status = 'approved', is_verified = 1 WHERE id = ?", [id]);
 
       // 3. Dispatch in-app notification
       const notifId = crypto.randomUUID();
-      db.prepare(`
+      await db.execute(`
         INSERT INTO notifications (id, user_id, title, body, link) 
         VALUES (?, ?, ?, ?, ?)
-      `).run(
-        notifId, 
-        property.owner_id, 
-        'Property Listing Published! 🚀', 
-        'Your listing was manually verified and published by our administrator.', 
+      `, [
+        notifId,
+        property.owner_id,
+        'Property Listing Published! 🚀',
+        'Your listing was manually verified and published by our administrator.',
         '/my-properties'
-      );
+      ]);
 
       success = true;
-    })();
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ error: 'Database transaction error' });
+    }
 
     if (success) {
       // 4. Send confirmation email to property owner
       try {
-        const owner = db.prepare('SELECT email, full_name FROM users WHERE id = ?').get(property.owner_id);
+        const [owner_rows] = await db.execute('SELECT email, full_name FROM users WHERE id = ?', [property.owner_id]);
+        const owner = owner_rows[0];
         if (owner) {
           const { sendPropertyActivationSuccessEmail } = require('../emailService');
           sendPropertyActivationSuccessEmail(owner.email, owner.full_name || 'Property Owner', property.title);
@@ -324,19 +334,22 @@ router.post('/:id/manual-verify-payment', authenticateToken, requireRole('admin'
 });
 
 // POST /:id/resend-payment-link - Admin resends the listing fee invoice email
-router.post('/:id/resend-payment-link', authenticateToken, requireRole('admin'), (req, res) => {
+router.post('/:id/resend-payment-link', authenticateToken, requireRole('admin'), async (req, res) => {
   const { id } = req.params;
 
   try {
-    const property = db.prepare('SELECT title, owner_id FROM properties WHERE id = ?').get(id);
+    const [property_rows] = await db.execute('SELECT title, owner_id FROM properties WHERE id = ?', [id]);
+    const property = property_rows[0];
     if (!property) return res.status(404).json({ error: 'Property not found' });
 
-    const payment = db.prepare('SELECT payment_link FROM payments WHERE property_id = ?').get(id);
+    const [payment_rows] = await db.execute('SELECT payment_link FROM payments WHERE property_id = ?', [id]);
+    const payment = payment_rows[0];
     if (!payment || !payment.payment_link) {
       return res.status(404).json({ error: 'No active payment link found for this property listing' });
     }
 
-    const owner = db.prepare('SELECT email, full_name FROM users WHERE id = ?').get(property.owner_id);
+    const [owner_rows] = await db.execute('SELECT email, full_name FROM users WHERE id = ?', [property.owner_id]);
+    const owner = owner_rows[0];
     if (!owner) return res.status(404).json({ error: 'Property owner account not found' });
 
     const { sendPropertyApprovalPaymentEmail } = require('../emailService');

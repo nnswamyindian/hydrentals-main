@@ -27,7 +27,8 @@ router.post('/create-order', authenticateToken, async (req, res) => {
 
   try {
     // 1. Validate property exists
-    const property = db.prepare('SELECT id, owner_id, title, rent, status FROM properties WHERE id = ?').get(propertyId);
+    const [property_rows] = await db.execute('SELECT id, owner_id, title, rent, status FROM properties WHERE id = ?', [propertyId]);
+    const property = property_rows[0];
     if (!property) {
       return res.status(404).json({ error: 'Property not found' });
     }
@@ -38,7 +39,8 @@ router.post('/create-order', authenticateToken, async (req, res) => {
     }
 
     // 3. Validate payment not already completed
-    const existingPayment = db.prepare('SELECT id, status, amount FROM payments WHERE property_id = ?').get(propertyId);
+    const [existingPayment_rows] = await db.execute('SELECT id, status, amount FROM payments WHERE property_id = ?', [propertyId]);
+    const existingPayment = existingPayment_rows[0];
     if (existingPayment && existingPayment.status === 'completed') {
       return res.status(400).json({ error: 'Payment is already completed for this property listing' });
     }
@@ -90,7 +92,7 @@ router.post('/create-order', authenticateToken, async (req, res) => {
 });
 
 // POST /api/payments/verify - Validates Razorpay checkout signature and publishes the listing
-router.post('/verify', authenticateToken, (req, res) => {
+router.post('/verify', authenticateToken, async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, propertyId } = req.body;
   const { id: userId } = req.user;
 
@@ -119,7 +121,8 @@ router.post('/verify', authenticateToken, (req, res) => {
     let success = false;
     db.transaction(() => {
       // 2. Fetch payment record
-      const paymentRecord = db.prepare('SELECT id, status, user_id FROM payments WHERE property_id = ?').get(propertyId);
+      const [paymentRecord_rows] = await db.execute('SELECT id, status, user_id FROM payments WHERE property_id = ?', [propertyId]);
+    const paymentRecord = paymentRecord_rows[0];
       if (!paymentRecord) {
         throw new Error('No payment record found for this property');
       }
@@ -130,7 +133,7 @@ router.post('/verify', authenticateToken, (req, res) => {
       }
 
       // 3. Update payment status
-      db.prepare(`
+      await db.execute(`
         UPDATE payments 
         SET status = 'completed', 
             payment_method = 'online', 
@@ -139,23 +142,23 @@ router.post('/verify', authenticateToken, (req, res) => {
             razorpay_signature = ?, 
             paid_at = CURRENT_TIMESTAMP 
         WHERE id = ?
-      `).run(razorpay_payment_id, razorpay_payment_id, razorpay_signature, paymentRecord.id);
+      `, [razorpay_payment_id, razorpay_payment_id, razorpay_signature, paymentRecord.id]);
 
       // 4. Update property status
-      db.prepare("UPDATE properties SET status = 'approved', is_verified = 1 WHERE id = ?").run(propertyId);
+      await db.execute("UPDATE properties SET status = 'approved', is_verified = 1 WHERE id = ?", [propertyId]);
 
       // 5. Create in-app notification
       const notifId = crypto.randomUUID();
-      db.prepare(`
+      await db.execute(`
         INSERT INTO notifications (id, user_id, title, body, link) 
         VALUES (?, ?, ?, ?, ?)
-      `).run(
+      `, [
         notifId, 
         paymentRecord.user_id, 
         'Property Listing Live! 🚀', 
         'Your payment of ₹500 was completed and verified. Your property listing is now published.', 
         '/my-properties'
-      );
+      ]);
 
       success = true;
     })();
@@ -163,8 +166,10 @@ router.post('/verify', authenticateToken, (req, res) => {
     if (success) {
       // 6. Send confirmation email
       try {
-        const owner = db.prepare('SELECT email, full_name FROM users WHERE id = ?').get(userId);
-        const property = db.prepare('SELECT title FROM properties WHERE id = ?').get(propertyId);
+        const [owner_rows] = await db.execute('SELECT email, full_name FROM users WHERE id = ?', [userId]);
+    const owner = owner_rows[0];
+        const [property_rows] = await db.execute('SELECT title FROM properties WHERE id = ?', [propertyId]);
+    const property = property_rows[0];
         if (owner && property) {
           sendPropertyActivationSuccessEmail(owner.email, owner.full_name || 'Property Owner', property.title);
         }

@@ -53,14 +53,14 @@ router.post('/report-broker', async (req, res) => {
     `);
 
     // Insert complaint
-    db.prepare(`
+    await db.execute(`
       INSERT INTO broker_complaints
         (id, user_id, complainant_name, complainant_email, complainant_phone, broker_name, broker_phone, property_reference, description, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)
-    `).run(
+    `, [
       id,
       user_id || null,
-      complainant_name.trim(),
+      complainant_name.trim(]);,
       complainant_email.trim().toLowerCase(),
       complainant_phone?.trim() || null,
       broker_name.trim(),
@@ -109,13 +109,14 @@ router.put('/report-broker/:id/status', authenticateToken, requireRole(['admin']
     }
 
     // Update status in db
-    const info = db.prepare('UPDATE broker_complaints SET status = ? WHERE id = ?').run(status, id);
+    const [info_rows] = await db.execute('UPDATE broker_complaints SET status = ? WHERE id = ?').run(status, id);
     if (info.changes === 0) {
       return res.status(404).json({ error: 'Complaint not found.' });
     }
 
     // Fetch complaint to get email and user context
-    const complaint = db.prepare('SELECT * FROM broker_complaints WHERE id = ?').get(id);
+    const complaint = await db.execute('SELECT * FROM broker_complaints WHERE id = ?', [id]);
+    const info = info_rows[0];
 
     if (complaint) {
       // Send email notification
@@ -137,9 +138,9 @@ router.put('/report-broker/:id/status', authenticateToken, requireRole(['admin']
         const title = "Broker Complaint Update";
         const body = `Your report against ${complaint.broker_name} has been marked as ${status}.`;
         try {
-          db.prepare('INSERT INTO notifications (id, user_id, title, body, link) VALUES (?, ?, ?, ?, ?)').run(
+          db.prepare('INSERT INTO notifications (id, user_id, title, body, link) VALUES (?, ?, ?, ?, ?)', [
             notifId, complaint.user_id, title, body, '/dashboard'
-          );
+          ]);
         } catch (e) {
           console.error('[Contact] Failed to insert notification:', e.message);
         }

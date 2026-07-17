@@ -6,7 +6,7 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 // Get all conversations for the authenticated user
-router.get('/conversations', authenticateToken, (req, res) => {
+router.get('/conversations', authenticateToken, async (req, res) => {
   const userId = req.user.id;
   try {
     // We want the most recent message per partner in an easy-to-use format.
@@ -14,7 +14,7 @@ router.get('/conversations', authenticateToken, (req, res) => {
     // and process in Node for simplicity, or do a simple query.
     // Given the scale, fetching all of a user's messages is fast enough.
     
-    const messages = db.prepare(`
+    const messages = await db.execute(`
       SELECT * FROM messages 
       WHERE sender_id = ? OR receiver_id = ?
       ORDER BY created_at DESC
@@ -41,7 +41,7 @@ router.get('/conversations', authenticateToken, (req, res) => {
     let partnerMap = new Map();
     if (partnerIds.length > 0) {
       const placeholders = partnerIds.map(() => '?').join(',');
-      const partners = db.prepare(`SELECT id, full_name, avatar_url FROM users WHERE id IN (${placeholders})`).all(...partnerIds);
+      const [partners] = await db.execute(`SELECT id, full_name, avatar_url FROM users WHERE id IN (${placeholders})`, [...partnerIds]);
       partnerMap = new Map(partners.map(p => [p.id, p]));
     }
 
@@ -55,7 +55,7 @@ router.get('/conversations', authenticateToken, (req, res) => {
     let propertyMap = new Map();
     if (propertyIds.length > 0) {
       const placeholders = propertyIds.map(() => '?').join(',');
-      const properties = db.prepare(`SELECT id, title FROM properties WHERE id IN (${placeholders})`).all(...propertyIds);
+      const [properties] = await db.execute(`SELECT id, title FROM properties WHERE id IN (${placeholders})`, [...propertyIds]);
       propertyMap = new Map(properties.map(p => [p.id, p.title]));
     }
 
@@ -88,17 +88,17 @@ router.get('/conversations', authenticateToken, (req, res) => {
 });
 
 // Get messages for a specific conversation and mark unread as read
-router.get('/messages/:partnerId', authenticateToken, (req, res) => {
+router.get('/messages/:partnerId', authenticateToken, async (req, res) => {
   const userId = req.user.id;
   const partnerId = req.params.partnerId;
 
   try {
-    const messages = db.prepare(`
+    const [messages] = await db.execute(`
       SELECT * FROM messages 
       WHERE (sender_id = ? AND receiver_id = ?) 
          OR (sender_id = ? AND receiver_id = ?)
       ORDER BY created_at ASC
-    `).all(userId, partnerId, partnerId, userId);
+    `, [userId, partnerId, partnerId, userId]);
 
     // Explicit numeric boolean conversion if SQLite returned 0/1
     const formattedMessages = messages.map(m => ({
@@ -111,10 +111,11 @@ router.get('/messages/:partnerId', authenticateToken, (req, res) => {
       UPDATE messages 
       SET is_read = 1 
       WHERE sender_id = ? AND receiver_id = ? AND is_read = 0
-    `).run(partnerId, userId);
+    `, [partnerId, userId]);
 
     // Get partner profile too, to send along
-    const partner = db.prepare('SELECT id, full_name, avatar_url FROM users WHERE id = ?').get(partnerId) || null;
+    const [partner_rows] = await db.execute('SELECT id, full_name, avatar_url FROM users WHERE id = ?', [partnerId]);
+    const partner = partner_rows[0]; || null;
 
     res.json({ data: formattedMessages, partner: partner });
   } catch (err) {
@@ -124,7 +125,7 @@ router.get('/messages/:partnerId', authenticateToken, (req, res) => {
 });
 
 // Send a new message
-router.post('/messages', authenticateToken, (req, res) => {
+router.post('/messages', authenticateToken, async (req, res) => {
   const userId = req.user.id;
   const { receiver_id, content, property_id } = req.body;
 
@@ -140,22 +141,23 @@ router.post('/messages', authenticateToken, (req, res) => {
     const newId = crypto.randomUUID();
     const cleanContent = content.trim();
 
-    db.prepare(`
+    await db.execute(`
       INSERT INTO messages (id, sender_id, receiver_id, property_id, content, is_read)
       VALUES (?, ?, ?, ?, ?, 0)
-    `).run(newId, userId, receiver_id, property_id || null, cleanContent);
+    `, [newId, userId, receiver_id, property_id || null, cleanContent]);
 
-    const insertedMsg = db.prepare('SELECT * FROM messages WHERE id = ?').get(newId);
+    const [insertedMsg_rows] = await db.execute('SELECT * FROM messages WHERE id = ?', [newId]);
+    const insertedMsg = insertedMsg_rows[0];
     if(insertedMsg) insertedMsg.is_read = Boolean(insertedMsg.is_read);
 
     // Optional: Log an internal notification. (We recreate the edge function polyfill internally)
     try {
         const notifId = crypto.randomUUID();
         const notificationText = `New message received.`;
-        db.prepare(`
+        await db.execute(`
             INSERT INTO notifications (id, user_id, title, body, link)
             VALUES (?, ?, ?, ?, ?)
-        `).run(notifId, receiver_id, 'New Message', notificationText, '/messages');
+        `, [notifId, receiver_id, 'New Message', notificationText, '/messages']);
     } catch(err) {}
 
     res.json({ data: insertedMsg });

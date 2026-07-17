@@ -1,0 +1,9 @@
+Updated auth.js
+Updated chat.js
+Updated contact.js
+Updated edge.js
+Updated payments.js
+Updated properties.js
+Updated razorpay.js
+Updated rest.js
+Updated upload.js

@@ -115,7 +115,7 @@ app.use('/api/payments', paymentsRoutes);
 
 // Root test endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'SQLite Backend is running' });
+  res.json({ status: 'ok', message: 'MySQL Backend is running' });
 });
 
 app.listen(PORT, () => {

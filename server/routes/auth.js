@@ -57,12 +57,14 @@ router.post('/signup', async (req, res) => {
     }
 
     // Duplicate-check
-    const existingEmail = db.prepare('SELECT id FROM users WHERE email = ?').get(targetEmail);
+    const [existingEmail_rows] = await db.execute('SELECT id FROM users WHERE email = ?', [targetEmail]);
+    const existingEmail = existingEmail_rows[0];
     if (existingEmail) {
       return res.status(400).json({ error: 'Email or phone number is already registered' });
     }
     if (phone) {
-      const existingPhone = db.prepare('SELECT id FROM users WHERE phone = ?').get(phone);
+      const [existingPhone_rows] = await db.execute('SELECT id FROM users WHERE phone = ?', [phone]);
+    const existingPhone = existingPhone_rows[0];
       if (existingPhone) {
         return res.status(400).json({ error: 'Phone number is already registered' });
       }
@@ -73,10 +75,10 @@ router.post('/signup', async (req, res) => {
     const otp = generateOtp();
     const otpExpiresAt = Date.now() + OTP_TTL_MS;
 
-    db.prepare(`
+    await db.execute(`
       INSERT INTO users (id, email, password_hash, full_name, phone, role, verification_token, otp_expires_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, targetEmail, hash, name || '', phone || null, role || 'tenant', otp, otpExpiresAt);
+    `, [id, targetEmail, hash, name || '', phone || null, role || 'tenant', otp, otpExpiresAt]);
 
     console.log(`🔑 [DEV] Signup OTP for ${targetEmail}: ${otp} (expires in 10 min)`);
 
@@ -107,7 +109,8 @@ router.post('/admin-create-user', authenticateToken, async (req, res) => {
     }
     const { email, password, name, phone, role } = req.body;
 
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    const [existing_rows] = await db.execute('SELECT id FROM users WHERE email = ?', [email]);
+    const existing = existing_rows[0];
     if (existing) {
       return res.status(400).json({ error: 'Email already registered' });
     }
@@ -115,10 +118,10 @@ router.post('/admin-create-user', authenticateToken, async (req, res) => {
     const id = crypto.randomUUID();
     const hash = await bcrypt.hash(password, 10);
 
-    db.prepare(`
+    await db.execute(`
       INSERT INTO users (id, email, password_hash, full_name, phone, role, is_verified)
       VALUES (?, ?, ?, ?, ?, ?, 1)
-    `).run(id, email, hash, name, phone, role || 'tenant');
+    `, [id, email, hash, name, phone, role || 'tenant']);
 
     res.json({ user: { id, email, full_name: name, role: role || 'tenant', is_verified: true } });
   } catch (err) {
@@ -139,10 +142,10 @@ router.post('/login', async (req, res) => {
     }
 
     let user = null;
-    if (email.includes('@')) {
-      user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-    } else {
-      user = db.prepare('SELECT * FROM users WHERE phone = ? OR email = ?').get(email, email);
+    if (email.includes('@')) {[user_rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+    user = user = user_rows[0];
+    } else {[user_rows] = await db.execute('SELECT * FROM users WHERE phone = ? OR email = ?', [email, email]);
+    user = user = user_rows[0];
     }
 
     if (!user) {
@@ -187,10 +190,10 @@ router.post('/send-login-otp', async (req, res) => {
     }
 
     let user = null;
-    if (identifier.includes('@')) {
-      user = db.prepare('SELECT * FROM users WHERE email = ?').get(identifier);
-    } else {
-      user = db.prepare('SELECT * FROM users WHERE phone = ? OR email = ?').get(identifier, identifier);
+    if (identifier.includes('@')) {[user_rows] = await db.execute('SELECT * FROM users WHERE email = ?', [identifier]);
+    user = user = user_rows[0];
+    } else {[user_rows] = await db.execute('SELECT * FROM users WHERE phone = ? OR email = ?', [identifier, identifier]);
+    user = user = user_rows[0];
     }
 
     if (!user) {
@@ -200,7 +203,7 @@ router.post('/send-login-otp', async (req, res) => {
     const otp = generateOtp();
     const otpExpiresAt = Date.now() + OTP_TTL_MS;
 
-    db.prepare('UPDATE users SET verification_token = ?, otp_expires_at = ? WHERE id = ?')
+    await db.execute('UPDATE users SET verification_token = ?, otp_expires_at = ? WHERE id = ?')
       .run(otp, otpExpiresAt, user.id);
 
     console.log(`🔑 [DEV] Login OTP for ${user.email}: ${otp} (expires in 10 min)`);
@@ -231,10 +234,10 @@ router.post('/login-with-otp', async (req, res) => {
     }
 
     let user = null;
-    if (identifier.includes('@')) {
-      user = db.prepare('SELECT * FROM users WHERE email = ?').get(identifier);
-    } else {
-      user = db.prepare('SELECT * FROM users WHERE phone = ? OR email = ?').get(identifier, identifier);
+    if (identifier.includes('@')) {[user_rows] = await db.execute('SELECT * FROM users WHERE email = ?', [identifier]);
+    user = user = user_rows[0];
+    } else {[user_rows] = await db.execute('SELECT * FROM users WHERE phone = ? OR email = ?', [identifier, identifier]);
+    user = user = user_rows[0];
     }
 
     if (!user) {
@@ -279,7 +282,8 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'Email and OTP are required' });
     }
 
-    const user = db.prepare('SELECT * FROM users WHERE email = ? AND verification_token = ?').get(email, otp);
+    const [user_rows] = await db.execute('SELECT * FROM users WHERE email = ? AND verification_token = ?', [email, otp]);
+    const user = user_rows[0];
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid OTP code. Please try again.' });
@@ -318,7 +322,8 @@ router.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
-    const user = db.prepare('SELECT id, email, full_name FROM users WHERE email = ?').get(email);
+    const [user_rows] = await db.execute('SELECT id, email, full_name FROM users WHERE email = ?', [email]);
+    const user = user_rows[0];
 
     // Always respond with success to avoid email enumeration
     if (!user) {
@@ -366,7 +371,8 @@ router.post('/reset-password-otp', async (req, res) => {
       return res.status(400).json({ error: PASSWORD_STRENGTH_MSG });
     }
 
-    const user = db.prepare('SELECT * FROM users WHERE email = ? AND verification_token = ?').get(email, otp);
+    const [user_rows] = await db.execute('SELECT * FROM users WHERE email = ? AND verification_token = ?', [email, otp]);
+    const user = user_rows[0];
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid OTP code. Please try again.' });
@@ -403,7 +409,7 @@ router.post('/reset-password-otp', async (req, res) => {
 // ---------------------------------------------------------------------------
 // GET /api/auth/me
 // ---------------------------------------------------------------------------
-router.get('/me', authenticateToken, (req, res) => {
+router.get('/me', authenticateToken, async (req, res) => {
   try {
     const user = db.prepare(
       'SELECT id, email, full_name, phone, role, is_verified, avatar_url FROM users WHERE id = ?'
@@ -418,11 +424,11 @@ router.get('/me', authenticateToken, (req, res) => {
 // ---------------------------------------------------------------------------
 // PUT /api/auth/me/avatar
 // ---------------------------------------------------------------------------
-router.put('/me/avatar', authenticateToken, (req, res) => {
+router.put('/me/avatar', authenticateToken, async (req, res) => {
   try {
     const { avatar_url } = req.body;
     if (!avatar_url) return res.status(400).json({ error: 'avatar_url is required' });
-    db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?').run(avatar_url, req.user.id);
+    db.prepare('UPDATE users SET avatar_url = ? WHERE id = ?', [avatar_url, req.user.id]);
     const user = db.prepare(
       'SELECT id, email, full_name, phone, role, is_verified, avatar_url FROM users WHERE id = ?'
     ).get(req.user.id);
@@ -436,7 +442,7 @@ router.put('/me/avatar', authenticateToken, (req, res) => {
 // ---------------------------------------------------------------------------
 // PUT /api/auth/me/profile
 // ---------------------------------------------------------------------------
-router.put('/me/profile', authenticateToken, (req, res) => {
+router.put('/me/profile', authenticateToken, async (req, res) => {
   try {
     const { full_name, phone } = req.body;
     db.prepare('UPDATE users SET full_name = ?, phone = ? WHERE id = ?')

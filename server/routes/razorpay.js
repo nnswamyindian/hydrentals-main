@@ -84,19 +84,19 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
     db.transaction(() => {
       // Find matching payment record
       let paymentRecord = null;
-      if (orderId) {
-        paymentRecord = db.prepare(`
+      if (orderId) {[paymentRecord_rows] = await db.execute(`
           SELECT id, property_id, user_id, status FROM payments 
           WHERE razorpay_order_id = ? OR payment_link LIKE ?
-        `).get(orderId, `%${orderId}%`);
+        `, [orderId, `%${orderId}%`]);
+    paymentRecord = paymentRecord = paymentRecord_rows[0];
       }
 
       if (!paymentRecord && paymentId) {
-        // Fallback match on transaction/payment ID
-        paymentRecord = db.prepare(`
+        // Fallback match on transaction/payment ID[paymentRecord_rows] = await db.execute(`
           SELECT id, property_id, user_id, status FROM payments 
           WHERE razorpay_payment_id = ?
-        `).get(paymentId);
+        `, [paymentId]);
+    paymentRecord = paymentRecord = paymentRecord_rows[0];
       }
 
       if (!paymentRecord) {
@@ -112,7 +112,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
         }
 
         // Update payment record to completed
-        db.prepare(`
+        await db.execute(`
           UPDATE payments 
           SET status = 'completed', 
               payment_method = ?, 
@@ -120,32 +120,34 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
               razorpay_payment_id = ?,
               paid_at = CURRENT_TIMESTAMP 
           WHERE id = ?
-        `).run(paymentMethod, paymentId, paymentId, paymentRecord.id);
+        `, [paymentMethod, paymentId, paymentId, paymentRecord.id]);
 
         // Update property record to approved
-        db.prepare(`
+        await db.execute(`
           UPDATE properties 
           SET status = 'approved', 
               is_verified = 1 
           WHERE id = ?
-        `).run(paymentRecord.property_id);
+        `, [paymentRecord.property_id]);
 
         // Insert owner in-app notification
         const notifId = crypto.randomUUID();
-        db.prepare(`
+        await db.execute(`
           INSERT INTO notifications (id, user_id, title, body, link) 
           VALUES (?, ?, ?, ?, ?)
-        `).run(
+        `, [
           notifId, 
           paymentRecord.user_id, 
           'Property Listing Live! 🚀', 
           'Your property listing has been approved and published successfully.', 
           '/my-properties'
-        );
+        ]);
 
         // Send activation confirmation email
-        const owner = db.prepare('SELECT email, full_name FROM users WHERE id = ?').get(paymentRecord.user_id);
-        const property = db.prepare('SELECT title FROM properties WHERE id = ?').get(paymentRecord.property_id);
+        const [owner_rows] = await db.execute('SELECT email, full_name FROM users WHERE id = ?', [paymentRecord.user_id]);
+    const owner = owner_rows[0];
+        const [property_rows] = await db.execute('SELECT title FROM properties WHERE id = ?', [paymentRecord.property_id]);
+    const property = property_rows[0];
 
         if (owner && property) {
           sendPropertyActivationSuccessEmail(owner.email, owner.full_name || 'Property Owner', property.title);
@@ -157,28 +159,28 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
         if (paymentRecord.status === 'completed') return;
         
         // Update payment record to authorized/processing
-        db.prepare("UPDATE payments SET status = 'processing' WHERE id = ?").run(paymentRecord.id);
+        await db.execute("UPDATE payments SET status = 'processing' WHERE id = ?", [paymentRecord.id]);
         console.log(`[Webhook] Payment ${paymentRecord.id} authorized.`);
 
       } else if (event === 'payment.failed') {
         if (paymentRecord.status === 'completed') return;
 
         // Update payment record to failed
-        db.prepare("UPDATE payments SET status = 'failed' WHERE id = ?").run(paymentRecord.id);
+        await db.execute("UPDATE payments SET status = 'failed' WHERE id = ?", [paymentRecord.id]);
         console.log(`[Webhook] Payment ${paymentRecord.id} marked as failed.`);
         
         // Notify owner
         const notifId = crypto.randomUUID();
-        db.prepare(`
+        await db.execute(`
           INSERT INTO notifications (id, user_id, title, body, link) 
           VALUES (?, ?, ?, ?, ?)
-        `).run(
+        `, [
           notifId,
           paymentRecord.user_id,
           'Property Listing Payment Failed ❌',
           'The listing activation payment failed. Please try again from your dashboard.',
           '/dashboard'
-        );
+        ]);
       }
     })();
   } catch (dbErr) {
