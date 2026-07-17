@@ -195,7 +195,7 @@ const AdminDashboard = () => {
 
   return (
     <DashboardLayout 
-      title="Admin Dashboard" 
+      title="Admin - Dashboard" 
       subtitle={`Welcome, ${profile?.full_name || 'Admin'}! Manage the HydRent platform.`} 
       navigation={navigation}
     >
