@@ -30,6 +30,10 @@ jobs:
           git fetch --all
           git reset --hard origin/main
           
+          echo "📦 Installing root frontend dependencies & building React app..."
+          npm install
+          npm run build
+          
           echo "📦 Installing backend dependencies..."
           cd server
           npm install
