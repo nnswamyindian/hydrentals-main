@@ -130,7 +130,7 @@ const Footer = () => {
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 mt-0.5 text-primary" />
                 <span>
-                  T-Hub Phase 2, Madhapur, Hyderabad, Telangana 500032
+                  HydRentals Office, Near 100 Ft Road Madhapur, Hyderabad, Telangana 500081
                 </span>
               </li>
 
